@@ -8,7 +8,12 @@ Generate an SBOM during a build, check it with Awarely Monitor, and explicitly s
 
 [English walkthrough](docs/how-to.md) · [Ghid în română](docs/how-to.ro.md) · [Security boundaries](SECURITY.md)
 
-The plugin lives in this repository under `jenkins-plugin/`. Plugin versions, CLI versions and release artifacts are separate. This repository's release download is not a claim of inclusion in the Jenkins Update Center.
+This is the dedicated plugin repository. The [Awarely CLI](https://github.com/awarelyeu/awarely-sbom-scanner) has its own source and release cycle. Jenkins project hosting has not yet been approved; the plugin is not currently in the Jenkins Update Center. See [hosting readiness](docs/hosting.md).
+
+[![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
+[![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
+
+The verified **0.1.0-alpha.1** preview remains at its original release URL. Its signatures refer to the original scanner repository; moving source code does not re-sign or replace that artifact.
 
 ## Supported workflows
 
@@ -24,14 +29,16 @@ The plugin lives in this repository under `jenkins-plugin/`. Plugin versions, CL
 | `import` | An external CycloneDX application SBOM | Validated application-package import |
 | `existing` | A previously generated Awarely inventory | Reuse without rescanning |
 
-Actions are `local` (default), `check` and `sync`. Linux collection inventories the **agent**, not a container image or production server. See the CLI [coverage contract](../docs/coverage.md).
+Actions are `local` (default), `check` and `sync`. Linux collection inventories the **agent**, not a container image or production server. See the CLI [coverage contract](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/coverage.md).
 
 ## Build from source
 
 Use JDK 21 and Maven with the Jenkins baseline declared in `pom.xml`:
 
 ```sh
-mvn -B -ntp -f jenkins-plugin/pom.xml verify
+mvn -B -ntp verify
 ```
 
-The output is `jenkins-plugin/target/awarely-scan.hpi`. Development tool manifests deliberately fail closed until release archive and executable digests have been authenticated. Do not replace pins with arbitrary downloads or bypass verification.
+The output is `target/awarely-scan.hpi`. Development tool manifests deliberately fail closed until release archive and executable digests have been authenticated. Do not replace pins with arbitrary downloads or bypass verification.
+
+Future Jenkins releases use the Jenkins Incrementals/CD version scheme. A local development build is a snapshot, not a replacement for the published preview. See [contributing](CONTRIBUTING.md) and [release verification](docs/releases.md).

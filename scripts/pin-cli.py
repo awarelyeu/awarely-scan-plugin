@@ -62,6 +62,6 @@ if args.check:
         raise SystemExit('Tool pins differ from the authenticated release')
     print('PASS: both CLI archives and executable pins match authenticated release provenance')
 else:
-    MANIFEST.write_text('# Authenticated with jenkins-plugin/scripts/pin-cli.py; never edit digests by hand.\n' +
+    MANIFEST.write_text('# Authenticated with scripts/pin-cli.py; never edit digests by hand.\n' +
                         ''.join(f'{k}={v}\n' for k, v in pins.items()))
     print('Updated fixed CLI pins after verifying both public provenance bundles')

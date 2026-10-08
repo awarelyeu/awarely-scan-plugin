@@ -1,0 +1,24 @@
+name: Bug report
+description: Report an Awarely Scan plugin problem using synthetic data.
+body:
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions and environment
+      description: Plugin, Jenkins, Java, agent OS/architecture, pinned CLI and Syft versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and expected behavior
+      description: Minimal Pipeline/Freestyle setup with synthetic paths and package identities. Remove all credentials and private inventory data.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Actual behavior
+      description: Sanitized error messages. Report security issues privately using the Security tab.
+    validations:
+      required: true

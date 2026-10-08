@@ -1,6 +1,6 @@
 # Jenkins integration security boundaries
 
-The Jenkins plugin is controller code. Install only a reviewed, provenance-verified release and restrict Jenkins administration. The CLI's [security contract](../SECURITY.md) still applies.
+The Jenkins plugin is controller code. Install only a reviewed, provenance-verified release and restrict Jenkins administration. The CLI's [security contract](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/SECURITY.md) still applies.
 
 ## Controller, agent and project separation
 

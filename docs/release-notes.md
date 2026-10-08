@@ -6,4 +6,4 @@ Pipeline and Freestyle jobs share the same CLI, private outputs, credential hand
 
 Jenkins 2.580.1 or newer and Linux amd64/arm64 agents are required. JDK 21 is the tested runtime. Use isolated agents for trusted jobs. This preview is distributed as a provenance-attested HPI in this repository, not through the Jenkins Update Center. Verify the artifact before installation.
 
-[English walkthrough](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.ro.md) · [Release verification](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/releases.md)
+[English walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md) · [Release verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)

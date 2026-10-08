@@ -1,6 +1,8 @@
 # Plugin releases and verification
 
-Plugin tags use `jenkins-vVERSION`; CLI tags use `vVERSION`. The monorepo keeps the implementation and compatibility contract together, while allowing independent plugin releases. The HPI is not currently listed in the Jenkins Update Center.
+The plugin now has its own repository. It is not currently listed in the Jenkins Update Center. The tested preview below was published before extraction and remains immutable in the scanner repository. Its tag, checksum and attestation identity must not be changed to the new repository name.
+
+Future Jenkins-hosted releases will be published to the Jenkins Maven repository through the official Jenkins CD workflow, which feeds Jenkins update sites. Incrementals provide development previews; a GitHub prerelease flag alone does not publish to any Jenkins update site. See [hosting readiness and activation](hosting.md).
 
 The first preview is **0.1.0-alpha.1**, built for CLI **v0.10.0** and managed Syft **1.54.1**. Download all four files below from its [release page](https://github.com/awarelyeu/awarely-sbom-scanner/releases/tag/jenkins-v0.1.0-alpha.1) into a new empty directory:
 
@@ -27,10 +29,12 @@ Each release contains the HPI, a CycloneDX dependency inventory, checksum list a
 
 ## Maintainers
 
-1. Authenticate a published CLI release with `python3 jenkins-plugin/scripts/pin-cli.py --version vVERSION`. This verifies both architectures against repository, workflow, tag and GitHub-hosted-runner provenance before deriving archive and executable pins. No CLI binary is executed during pin generation.
-2. Review the pin changes, set the explicit plugin version in `pom.xml`, update both walkthroughs and release notes, and complete security review of changed authority/dependencies/release workflows.
-3. Run `mvn -B -ntp -f jenkins-plugin/pom.xml verify` and real Pipeline/Freestyle acceptance tests on isolated Linux amd64 and arm64 agents. Test denied credentials, untrusted jobs, report permissions, interrupted processes, modified caches and incomplete coverage.
-4. Merge only after CI passes for the reviewed commit. Create a new `jenkins-vVERSION` tag pointing to the verified merge commit, or a signed annotated tag. The release workflow repeats tests and authenticates the CLI pins, builds the HPI/SBOM and publishes provenance with an initial prerelease designation.
-5. Verify the published artifacts and install them in staging before promotion. Keep alpha tags as prereleases; never rewrite a published tag or replace its assets.
+1. Authenticate a published CLI release with `python3 scripts/pin-cli.py --version vVERSION`. The CLI remains in `awarelyeu/awarely-sbom-scanner`; that verification identity is intentionally unchanged. No CLI binary is executed during pin generation.
+2. Review pins, both walkthroughs and changes to authority, dependencies or release workflows. The plugin ID remains `awarely-scan` so Jenkins recognizes future updates.
+3. Build from the repository root with `mvn -B -ntp verify`. Runtime changes require appropriate Pipeline/Freestyle acceptance tests on isolated Linux amd64/arm64 agents. The repository extraction preserves the already completed tests; it does not require new cloud machines.
+4. Before the first Jenkins-hosted release, complete [hosting approval and CD activation](hosting.md). The prepared CD workflow is manual, disabled outside the canonical Jenkins repository, and defaults to validation only. Jenkins infrastructure must confirm its CI/release permissions first.
+5. Publish a new version through Jenkins CD, then verify and stage that version before promotion. Never replace the original preview, rewrite its tag or reuse its version for a different HPI.
+
+The POM and `.mvn/` files use the standard Jenkins changelist/Incrementals scheme. Local snapshots are not release artifacts. The previous monorepo packaging script is retained in Git history; it is superseded by Jenkins Maven publication.
 
 Updating CLI pins is a plugin release decision. Build jobs cannot run arbitrary versions or automatic updates. A compromised release requires withdrawal/advisory and a new version, not silent replacement.
