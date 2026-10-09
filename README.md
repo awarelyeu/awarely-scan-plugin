@@ -1,6 +1,6 @@
 # Awarely Scan for Jenkins
 
-**Preview: 0.1.0-alpha.1. Test on a staging controller before production use.**
+**Preview: 0.1.0-alpha.2. Test on a staging controller before production use.**
 
 [Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.0 and managed Syft 1.54.1.
 
@@ -13,7 +13,7 @@ This is the dedicated plugin repository. The [Awarely CLI](https://github.com/aw
 [![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
 [![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
 
-The verified **0.1.0-alpha.1** preview remains at its original release URL. Its signatures refer to the original scanner repository; moving source code does not re-sign or replace that artifact.
+Download the current **0.1.0-alpha.2** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.2). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
 
 ## Supported workflows
 

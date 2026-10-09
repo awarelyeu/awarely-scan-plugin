@@ -16,7 +16,7 @@ Status: standalone repository prepared; hosting request not submitted. Jenkins m
 
 ## Before sending the hosting request
 
-1. Finish the owner's final manual acceptance of the already tested preview. Preserve its original provenance; do not re-upload it as a new release.
+1. Finish the owner's final manual acceptance of the [current verified preview](releases.md). GitHub previews are built and attested in this repository; the original alpha.1 remains unchanged in the scanner repository.
 2. Create a Jenkins community account at https://accounts.jenkins.io, then sign in to https://issues.jenkins.io and https://repo.jenkins-ci.org as required by the hosting form. The owner confirmed that this account does not yet exist. Replace the clearly marked account field in the request draft; GitHub and Jenkins usernames are independent.
 3. Review the default-branch Jenkins Security Scan alerts, build results and metadata. Submit the prepared draft using the [official hosting form](https://github.com/jenkins-infra/repository-permissions-updater/issues/new?template=1-hosting-request.yml) only when authorized. Request official GitHub-based releases; do not provide personal Maven tokens in an issue.
 
@@ -36,7 +36,7 @@ The official CD workflow is already in `.github/workflows/cd.yml`. It:
 
 Leave `JENKINS_CD_APPROVED` unset until Jenkins reviews this workflow and the corresponding repository-permissions-updater CD configuration, provisions credentials and enables successful `ci.jenkins.io` builds. Then run validation first; a subsequent manual release run may clear `validate_only`. Never bypass the Jenkins CI verification. The POM already uses `${changelist}` with Jenkins's standard Incrementals configuration, so no runtime implementation rewrite is needed.
 
-Releases go to the Jenkins Maven repository, from which update sites obtain plugins. Development previews should use Incrementals; the experimental update center is deprecated. A GitHub alpha/beta release alone is not publication to Jenkins.
+Jenkins-hosted releases go to the Jenkins Maven repository, from which update sites obtain plugins. After hosting, development previews should use Incrementals; the experimental update center is deprecated. The pre-hosting `preview-release.yml` is restricted to `awarelyeu/awarely-scan-plugin` and produces verified HPI downloads for manual staging tests. A GitHub alpha/beta release alone is not publication to Jenkins.
 
 ## Official references
 

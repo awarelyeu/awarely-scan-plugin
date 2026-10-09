@@ -1,0 +1,69 @@
+# Pre-hosting GitHub previews only. Official Jenkins Maven/CD stays in cd.yml.
+name: Plugin preview release
+on:
+  push:
+    tags: ['v*-alpha.*']
+permissions:
+  contents: read
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'awarelyeu/awarely-scan-plugin'
+    uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
+  release:
+    if: github.repository == 'awarelyeu/awarely-scan-plugin'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a reviewed main-branch preview
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          python3 scripts/package-preview.py --version-only "$RELEASE_TAG"
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Authenticate pinned CLI release
+        run: python3 scripts/pin-cli.py --check
+      - name: Build versioned HPI and dependency inventory
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(python3 scripts/package-preview.py --version-only "$RELEASE_TAG")
+          mvn -B -ntp -Dchangelist="$VERSION" -DscmTag="$RELEASE_TAG" clean verify
+          mvn -B -ntp -Dchangelist="$VERSION" -DscmTag="$RELEASE_TAG" org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom -DincludeTestScope=false -DincludeProvidedScope=true -DoutputFormat=json
+          python3 scripts/package-preview.py "$RELEASE_TAG"
+      - name: Attest HPI, dependency inventory and checksums
+        id: provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: |
+            dist/preview/*.hpi
+            dist/preview/*.json
+            dist/preview/SHA256SUMS
+      - name: Publish a new GitHub preview
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+        run: |
+          test -s "$BUNDLE_PATH"
+          for artifact in dist/preview/*.hpi dist/preview/*.json dist/preview/SHA256SUMS; do
+            cp "$BUNDLE_PATH" "$artifact.sigstore.jsonl"
+          done
+          gh release create "$RELEASE_TAG" dist/preview/* --verify-tag --prerelease --title "Awarely Scan for Jenkins $RELEASE_TAG" --notes-file docs/release-notes.md

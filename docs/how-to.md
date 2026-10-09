@@ -1,14 +1,14 @@
 # Jenkins: from installation to your first inventory check
 
-Plugin source and future development live in [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). The tested preview remains in the original release location; use the verification commands in this guide. Jenkins Update Center publication is pending hosting approval.
+Plugin source, documentation and current preview releases live in [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Jenkins Update Center publication is pending hosting approval.
 
-This guide covers preview 0.1.0-alpha.1. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
+This guide covers preview 0.1.0-alpha.2. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
 
 ## 1. Prepare Jenkins once
 
 You need Jenkins 2.580.1 or newer, a supported Jenkins Java runtime (JDK 21 for this plugin's tested baseline), and a Linux amd64 or arm64 agent running as a regular user. Keep the controller's executors at zero. Application builds may require Node.js/npm, Python or Maven/Java; the scanner itself does not require these runtimes for reading existing files.
 
-Download the HPI from the [plugin releases](https://github.com/awarelyeu/awarely-sbom-scanner/releases/tag/jenkins-v0.1.0-alpha.1) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
+Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.2) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
 
 Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
 

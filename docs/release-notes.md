@@ -1,4 +1,6 @@
-# Awarely Scan for Jenkins — first preview
+# Awarely Scan for Jenkins 0.1.0-alpha.2
+
+This preview is built and published from the dedicated `awarelyeu/awarely-scan-plugin` repository, with updated repository metadata, CI actions and English/Romanian installation guides. The HPI, dependency SBOM and checksums have public provenance attestations tied to this repository and release tag. The plugin runtime source and fixed CLI/Syft versions are unchanged from 0.1.0-alpha.1.
 
 Collect an application SBOM during a build, check it against Awarely Monitor and explicitly synchronize a configured source after deployment. The plugin supports Linux agents, native npm/Python manifests, managed Syft for npm/Python/Java/other ecosystems, external CycloneDX application imports and existing Awarely inventories.
 

@@ -16,7 +16,7 @@ Awarely Scan provides Jenkins Pipeline and Freestyle integration for local Cyclo
 
 The integration combines native collectors and pinned verified CLI/Syft tools with Awarely Monitor's scoped check/sync API and explicit inventory/assessment coverage policies. Local inventory needs no Monitor account; remote actions require the customer's Monitor credentials. This is the integration point with Awarely's inventory and vulnerability service, rather than a general replacement for SBOM producers or a claim to evaluate every ecosystem.
 
-The plugin uses administrator allowlists for remote actions, host inventory and trusted jobs/nodes; refuses privileged collection and credential use by change-request builds; bounds/parses untrusted reports; and keeps managed tool versions under maintainer control. English/Romanian user documentation, Apache-2.0 license, root Jenkinsfile, Incrementals and Jenkins Security Scan are included. The existing tested preview remains at its original immutable monorepo release URL; source history has been extracted into this standalone repository.
+The plugin uses administrator allowlists for remote actions, host inventory and trusted jobs/nodes; refuses privileged collection and credential use by change-request builds; bounds/parses untrusted reports; and keeps managed tool versions under maintainer control. English/Romanian user documentation, Apache-2.0 license, root Jenkinsfile, Incrementals and Jenkins Security Scan are included. Source history has been extracted into this standalone repository, which publishes provenance-attested HPI previews for manual staging tests. The original alpha.1 remains at its unchanged monorepo release URL.
 
 ## GitHub users to have commit permission
 
