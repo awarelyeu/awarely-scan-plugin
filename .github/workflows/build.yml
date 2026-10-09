@@ -31,6 +31,8 @@ jobs:
           java-version: '21'
       - name: Test, package and analyze the plugin
         run: mvn -B -ntp verify
+      - name: Verify preview packaging guards
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
   secrets:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
