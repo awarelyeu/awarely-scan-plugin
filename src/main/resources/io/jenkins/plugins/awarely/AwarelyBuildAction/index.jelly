@@ -16,5 +16,16 @@
 <tbody><j:forEach var="finding" items="${result.findings}"><tr><td>${finding.id}</td><td>${finding.severity}</td><td>${finding.ecosystem}</td><td>${finding.name}</td><td>${finding.version}</td><td>${finding.precision}</td></tr></j:forEach></tbody></table>
 <p>Preview includes up to 100 component matches. The JSON artifact contains the full result.</p>
 </j:when><j:when test="${result.mode == 'sync'}"><p>Source inventory synchronized. This action does not evaluate vulnerabilities.</p></j:when><j:otherwise><p>Local inventory only. No vulnerability assessment or upload was performed.</p></j:otherwise></j:choose>
+<j:if test="${result.comparison != null}">
+<h3>Changes since the previous build</h3>
+<p>${result.comparison.message}</p>
+<j:if test="${result.comparison.available}">
+<p>Components added: ${result.comparison.addedComponents} · Components removed: ${result.comparison.removedComponents}</p>
+<j:if test="${result.comparison.matchesAvailable}"><p>Component matches newly observed: ${result.comparison.addedMatches} · Component matches no longer observed: ${result.comparison.removedMatches}</p></j:if>
+<p>${result.comparison.findingMessage}</p>
+<table class="jenkins-table"><thead><tr><th>Change</th><th>Identity</th></tr></thead>
+<tbody><j:forEach var="change" items="${result.comparison.changes}"><tr><td>${change.kind}</td><td>${change.identity}</td></tr></j:forEach></tbody></table>
+<p>Counts use the full retained inventories and reports. Preview is limited to 100 changes; the original artifacts contain the full evidence. Build policy always uses the current assessment, not these differences.</p>
+</j:if></j:if>
 <p><a href="${rootURL}/${it.run.url}artifact/${result.artifactPath}/">Download inventory and result artifacts</a></p>
 </j:forEach></l:main-panel></l:layout></j:jelly>

@@ -1,8 +1,8 @@
 # Awarely Scan for Jenkins
 
-**Preview: 0.1.0-alpha.2. Test on a staging controller before production use.**
+**Preview: 0.1.0-alpha.3. Test on a staging controller before production use.**
 
-[Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.0 and managed Syft 1.54.1.
+[Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.1 and managed Syft 1.54.1.
 
 Generate an SBOM during a build, check it with Awarely Monitor, and explicitly synchronize one inventory source when appropriate. The plugin uses the same CLI and managed Syft as the terminal workflow. It does not build your application or install its dependencies.
 
@@ -13,7 +13,7 @@ This is the dedicated plugin repository. The [Awarely CLI](https://github.com/aw
 [![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
 [![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
 
-Download the current **0.1.0-alpha.2** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.2). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
+Download the current **0.1.0-alpha.3** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.3). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
 
 ## Supported workflows
 
@@ -30,6 +30,14 @@ Download the current **0.1.0-alpha.2** preview from [this repository's releases]
 | `existing` | A previously generated Awarely inventory | Reuse without rescanning |
 
 Actions are `local` (default), `check` and `sync`. Linux collection inventories the **agent**, not a container image or production server. See the CLI [coverage contract](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/coverage.md).
+
+## Configure and understand a build
+
+- Run `preflightOnly: true` in a staging job to check the agent, paths, approvals and credential format without scanning or contacting Monitor. Turn it off for the real scan; it does not disable other job steps.
+- Choose `policyResult: 'FAILURE'` to stop the step when severity/incomplete policy trips, or retain the compatible `UNSTABLE` default. Reports are preserved.
+- Open **Awarely Scan → Changes since the previous build** for component and observed CVE-match differences. Incompatible or incomplete evidence is explained, never presented as confirmed remediation.
+
+The [walkthrough](docs/how-to.md) includes copyable Pipeline examples and field-by-field guidance. Help is also available next to fields in Freestyle and the Pipeline Snippet Generator.
 
 ## Build from source
 

@@ -2,13 +2,13 @@
 
 Codul pluginului, documentația și release-urile preview curente sunt în [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Publicarea în Jenkins Update Center așteaptă aprobarea de hosting.
 
-Acest ghid acoperă preview-ul 0.1.0-alpha.2. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
+Acest ghid acoperă preview-ul 0.1.0-alpha.3. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
 
 ## 1. Pregătește Jenkins o singură dată
 
 Ai nevoie de Jenkins 2.580.1 sau mai nou, un Java compatibil cu versiunea Jenkins (testăm cu JDK 21) și un agent Linux amd64 sau arm64 care rulează fără root. Controllerul trebuie să aibă zero executori. Build-ul aplicației poate necesita Node.js/npm, Python ori Maven/Java; scannerul citește fișiere deja existente și nu instalează aceste runtime-uri.
 
-Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.2) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
+Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.3) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
 
 În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
 
@@ -31,9 +31,30 @@ O scanare locală de aplicație nu necesită cont sau credențiale Monitor. Cach
 
 În credentials store-ul folderului Jenkins potrivit, adaugă un **Secret file**, încarcă JSON-ul și alege un ID clar, de exemplu `awarely-monitor-check`. Limitează drepturile de configurare a joburilor și accesul la credențiale. Nu pune JSON-ul în Git, tokenul în Jenkinsfile sau credențiala într-o variabilă de mediu.
 
-Pluginul citește Secret file numai pentru operațiunea API și îl transmite CLI-ului verificat prin standard input. Nu îl copiază în workspace și nu îl arhivează.
+Pluginul citește Secret file numai pentru o operațiune API autorizată sau pentru verificarea configurației. Preflight îl validează pe controller fără să îl transmită. Operațiunile API reale îl transmit CLI-ului verificat prin standard input. Nu este copiat în workspace și nu este arhivat.
 
-## 3. Prima scanare locală
+## 3. Verifică întâi configurația
+
+Folosește un job de staging fără pași de deployment. Fă checkout la aplicație și, pentru Syft, construiește aplicația/instalează dependențele înainte de Awarely. În Freestyle, adaugă pasul Awarely și bifează **Validate configuration only (no scan or upload)**. Selectează tipul aplicației, acțiunea dorită și calea relativă la workspace. Iconița de ajutor de lângă fiecare câmp explică ce trebuie completat.
+
+În Pipeline, folosește configurația dorită cu `preflightOnly: true`:
+
+```groovy
+awarelyScan collector: 'npm', mode: 'check',
+  path: '.', applicationLabel: 'shop',
+  credentialsId: 'awarely-monitor-check', preflightOnly: true
+```
+
+Citește consola. Preflight verifică agentul real, arhitectura, calea, accesul la manifest/fișier, permisiunile directorului privat de rezultate, cache-ul CLI/politica de descărcare, aprobările administratorului și formatul/accesul la credențială pentru acțiuni API. Nu scanează, nu descarcă, nu contactează Monitor și nu modifică starea sursei. Creează și șterge directoare private temporare.
+
+- **PASS**: verificarea locală indicată a trecut.
+- **PENDING**: scanarea reală va trebui să descarce CLI-ul fixat; conexiunea HTTPS nu a fost testată.
+- **INFO / ACTION / NOT TESTED**: pregătiri sau verificări care necesită scanarea reală. CLI-ul verifică Syft și conținutul artefactelor la colectare. Dreptul Check/Sync al tokenului, expirarea/revocarea, conexiunea API, cotele și starea sursei se verifică la operațiunea API reală.
+- Calea/manifestul lipsă, credențiala invalidă ori o arhivă CLI modificată opresc pasul cu indicații de corectare. Corectează problema și repetă build-ul de staging.
+
+Apoi **debifează opțiunea sau elimină `preflightOnly: true`** și rulează scanarea reală. SUCCESS la preflight nu înseamnă evaluare CVE. Opțiunea afectează numai pasul Awarely: ceilalți pași de build/deployment din job pot rula în continuare.
+
+## 3a. Prima scanare locală
 
 Într-un proiect Freestyle, alege **Add build step → Awarely Scan: inventory, check or synchronize**. Selectează tipul aplicației, o cale relativă la workspace, eticheta inventarului și **Save local inventory only**. Dacă folosești Syft, construiește aplicația înainte de scanare.
 
@@ -70,18 +91,21 @@ După build, deschide **Awarely Scan** și **Artifacts**. Inventarul apare la `a
 awarelyScan collector: 'npm', mode: 'check',
   path: '.', applicationLabel: 'shop',
   credentialsId: 'awarely-monitor-check',
-  severityThreshold: 'HIGH', failOnIncomplete: true
+  severityThreshold: 'HIGH', failOnIncomplete: true,
+  policyResult: 'FAILURE'
 ```
 
 `check` trimite identitățile normalizate ale pachetelor, versiunile și dovezile către API-ul Monitor configurat. Nu salvează inventarul și nu schimbă alertele. Jenkins păstrează raportul JSON complet și afișează un rezumat cu perioada, severitatea, precizia și componentele neevaluate.
 
 - `REPORT_ONLY` afișează rezultatele fără prag de severitate.
-- `CRITICAL`, `HIGH`, `MEDIUM` sau `LOW` marchează build-ul **UNSTABLE** dacă există o potrivire confirmată pe versiune la acel nivel sau mai sus.
+- `CRITICAL`, `HIGH`, `MEDIUM` sau `LOW` declanșează politica aleasă dacă există o potrivire confirmată pe versiune la acel nivel sau mai sus.
 - Potrivirile numai pe produs rămân vizibile, dar nu declanșează pragul pentru versiuni confirmate.
-- `failOnIncomplete: true` marchează separat **UNSTABLE** pentru inventar parțial sau componente neevaluate, inclusiv când nu există potriviri CVE.
+- `failOnIncomplete: true` declanșează separat politica pentru inventar parțial sau componente neevaluate, inclusiv când nu există potriviri CVE. În modul local se referă doar la acoperirea inventarului.
 - Erorile de intrare, autentificare, API ori verificare a uneltelor opresc pasul; nu sunt transformate în rezultate cu zero CVE.
 
-În Declarative Pipeline, `skipStagesAfterUnstable()` împiedică etapele ulterioare, inclusiv deployment-ul, după un astfel de rezultat. `REPORT_ONLY` nu dezactivează politica separată pentru acoperire incompletă. Nicio potrivire nu înseamnă automat că aplicația este sigură.
+`policyResult: 'FAILURE'` păstrează inventarul și raportul, marchează FAILURE și oprește execuția normală a pasului. Pașii Pipeline următori nu rulează decât dacă Jenkinsfile-ul interceptează intenționat eroarea, de exemplu cu `catchError` sau `try/catch`.
+
+`policyResult: 'UNSTABLE'` este valoarea implicită, inclusiv pentru joburile existente. Raportează depășirea politicii și lasă pasul să se termine. În Declarative Pipeline, `skipStagesAfterUnstable()` împiedică etapele ulterioare, inclusiv deployment-ul, după un astfel de rezultat. `REPORT_ONLY` nu dezactivează politica separată pentru acoperire incompletă. Nicio potrivire nu înseamnă automat că aplicația este sigură.
 
 ## 5. Python, Java și celelalte tipuri de inventar
 
@@ -130,6 +154,18 @@ awarelyScan collector: 'java', mode: 'sync',
 Eticheta descrie SBOM-ul; credențiala stabilește aplicația și sursa destinație. Sync înlocuiește imediat numai acea sursă și le păstrează pe celelalte. Inventarele parțiale sau goale sunt refuzate. Pluginul serializează sincronizările sale, persistă ordinea build-urilor și refuză un build mai vechi ori alt job care încearcă să scrie aceeași sursă. Serverul verifică separat revizia și cheia de idempotency.
 
 Nu pune sync într-un `retry` automat. După timeout, restart de controller sau pierderea răspunsului, verifică sursa în Monitor înainte de repetare. CLI-ul păstrează aceeași revizie și cheie pentru propriile retry-uri de transport, limitate. Pluginul nu reia automat un proces întrerupt de restart-ul controllerului.
+
+## 6a. Compară build-urile
+
+De la al doilea build comparabil, deschide **Build → Awarely Scan → Changes since the previous build**. Nu trebuie configurată o acțiune suplimentară și nu se face alt apel Monitor.
+
+Pluginul compară cu build-ul anterior păstrat al aceluiași job, pentru același colector, cale, etichetă, domeniu de scanare, CLI fixat și destinație aplicație/sursă. Pentru Linux trebuie să fie același nume de agent. Păstrează calea/eticheta stabile și folosește etichete distincte pentru scanări separate în același job. Rotirea credențialei pentru aceeași destinație păstrează comparația.
+
+Vezi componente adăugate/eliminate; o schimbare de versiune apare ca o eliminare și o adăugare. Pentru două verificări complete, fără componente neevaluate și cu aceeași durată a perioadei evaluate, apar și potriviri pe componente **observate acum** sau **care nu mai apar**, inclusiv versiunea și precizia. Schimbarea catalogului ori a datelor perioadei este indicată explicit. Dispariția unei potriviri nu demonstrează remedierea: se poate schimba pachetul, catalogul ori perioada evaluată.
+
+Totalurile folosesc SBOM-urile și rapoartele complete păstrate, nu doar primele 100 de potriviri afișate. Tabelul arată maximum 100 de schimbări; JSON-urile originale ale ambelor build-uri păstrează dovezile complete. Politica build-ului se bazează pe toate potrivirile curente confirmate pe versiune, nu pe diferențe.
+
+Primul build, rezultatele vechi fără metadate de comparație, artefactele șterse/expirate, pașii dublați fără o identitate distinctă, un build anterior încă activ sau schimbarea domeniului afișează motivul pentru care comparația nu este disponibilă. Inventarele parțiale opresc comparația componentelor. Evaluările parțiale/neevaluate opresc doar comparația CVE, dacă inventarele sunt complete. Pluginul nu caută în tăcere un build mai vechi care a trecut.
 
 ## 7. Rezolvarea problemelor și actualizările
 

@@ -15,6 +15,24 @@ public final class ScanResult implements Serializable {
     private final int components, matchedCves, versionMatches, unevaluated;
     private final boolean gateExceeded;
     private final List<Finding> findings;
+    private String comparisonScope;
+    private BuildComparison comparison;
+
+    void complete(String scope) {
+        comparisonScope = scope;
+    }
+
+    String comparisonScope() {
+        return comparisonScope;
+    }
+
+    void setComparison(BuildComparison value) {
+        comparison = value;
+    }
+
+    public BuildComparison getComparison() {
+        return comparison;
+    }
 
     private ScanResult(
             String label,

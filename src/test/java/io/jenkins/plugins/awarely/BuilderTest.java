@@ -16,6 +16,8 @@ class BuilderTest {
         FreeStyleProject p = j.createFreeStyleProject();
         AwarelyScanBuilder step = new AwarelyScanBuilder("java");
         step.setMode("local");
+        step.setPolicyResult("FAILURE");
+        step.setPreflightOnly(true);
         step.setPath("target/my app");
         step.setApplicationLabel("Demo Java");
         p.getBuildersList().add(step);
@@ -24,6 +26,39 @@ class BuilderTest {
         j.assertEqualDataBoundBeans(step, restored);
         var build = j.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0));
         j.assertLogContains("never on the Jenkins controller", build);
+    }
+
+    @Test
+    void buildPoliciesNeverImproveAnEarlierResult(JenkinsRule j) throws Exception {
+        var job = j.createFreeStyleProject();
+        var high = ScanResult.check(
+                "demo",
+                "npm",
+                "awarely/test",
+                ScanResultTest.report("version", "HIGH", "complete", "[]")
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                "HIGH");
+        job.getBuildersList().add(new org.jvnet.hudson.test.TestBuilder() {
+            @Override
+            public boolean perform(
+                    hudson.model.AbstractBuild<?, ?> run, hudson.Launcher launcher, hudson.model.BuildListener listener)
+                    throws java.io.IOException {
+                AwarelyScanBuilder.applyPolicy(run, high, true, "UNSTABLE", listener);
+                assertEquals(Result.UNSTABLE, run.getResult());
+                assertThrows(
+                        hudson.AbortException.class,
+                        () -> AwarelyScanBuilder.applyPolicy(run, high, true, "FAILURE", listener));
+                assertEquals(Result.FAILURE, run.getResult());
+                AwarelyScanBuilder.applyPolicy(run, high, true, "UNSTABLE", listener);
+                assertEquals(Result.FAILURE, run.getResult());
+                return true;
+            }
+        });
+        j.assertBuildStatus(Result.FAILURE, job.scheduleBuild2(0));
+        var step = new AwarelyScanBuilder("npm");
+        assertEquals("UNSTABLE", step.getPolicyResult());
+        assertFalse(step.isPreflightOnly());
+        assertThrows(IllegalArgumentException.class, () -> step.setPolicyResult("SUCCESS"));
     }
 
     @Test
