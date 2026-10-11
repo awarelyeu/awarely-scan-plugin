@@ -27,7 +27,8 @@ class PolicyPipelineTest {
         for (String policy : new String[] {"FAILURE", "UNSTABLE"}) {
             var job = j.createProject(WorkflowJob.class, "policy-" + policy);
             job.setDefinition(new CpsFlowDefinition(
-                    "node { awarelyPolicyFixture policy: '" + policy + "'; echo 'DEPLOYMENT_REACHED' }", true));
+                    "node { step([$class: 'PolicyFixture', policy: '" + policy + "']); echo 'DEPLOYMENT_REACHED' }",
+                    true));
             var run = j.assertBuildStatus(Result.fromString(policy), job.scheduleBuild2(0));
             assertEquals(policy.equals("UNSTABLE"), JenkinsRule.getLog(run).contains("DEPLOYMENT_REACHED"));
         }
