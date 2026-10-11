@@ -31,7 +31,7 @@ In Monitor, open **Settings → Assets → Awarely Scan CLI**. With Pro access a
 
 In the appropriate Jenkins folder's credentials store, add a **Secret file**, upload that JSON and give it a recognizable ID, such as `awarely-monitor-check`. Restrict job configuration and credential access to the people who should be able to use that account. Do not commit the JSON to Git, paste its token into a Jenkinsfile or bind it as an environment variable.
 
-The Awarely step reads the selected Secret file only for an authorized API operation or configuration preflight and passes it to the verified CLI through standard input. It never copies it into the workspace or archives it.
+The Awarely step reads the selected Secret file only for an authorized API operation or configuration preflight. Preflight validates it on the controller without transmitting it. Actual API operations pass it to the verified CLI through standard input. It is never copied into the workspace or archived.
 
 ## 3. Check your configuration first
 

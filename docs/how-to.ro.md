@@ -31,7 +31,7 @@ O scanare locală de aplicație nu necesită cont sau credențiale Monitor. Cach
 
 În credentials store-ul folderului Jenkins potrivit, adaugă un **Secret file**, încarcă JSON-ul și alege un ID clar, de exemplu `awarely-monitor-check`. Limitează drepturile de configurare a joburilor și accesul la credențiale. Nu pune JSON-ul în Git, tokenul în Jenkinsfile sau credențiala într-o variabilă de mediu.
 
-Pluginul citește Secret file numai pentru o operațiune API autorizată sau pentru verificarea configurației și îl transmite CLI-ului verificat prin standard input. Nu îl copiază în workspace și nu îl arhivează.
+Pluginul citește Secret file numai pentru o operațiune API autorizată sau pentru verificarea configurației. Preflight îl validează pe controller fără să îl transmită. Operațiunile API reale îl transmit CLI-ului verificat prin standard input. Nu este copiat în workspace și nu este arhivat.
 
 ## 3. Verifică întâi configurația
 

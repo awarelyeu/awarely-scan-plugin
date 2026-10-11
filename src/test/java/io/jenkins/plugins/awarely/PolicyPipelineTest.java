@@ -30,6 +30,7 @@ class PolicyPipelineTest {
                     "node { step([$class: 'PolicyFixture', policy: '" + policy + "']); echo 'DEPLOYMENT_REACHED' }",
                     true));
             var run = j.assertBuildStatus(Result.fromString(policy), job.scheduleBuild2(0));
+            j.assertLogContains("Awarely policy: version-confirmed matches", run);
             assertEquals(policy.equals("UNSTABLE"), JenkinsRule.getLog(run).contains("DEPLOYMENT_REACHED"));
         }
     }

@@ -30,6 +30,10 @@ final class Preflight {
         }
 
         @Override
+        @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+                value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+                justification =
+                        "Linux-only prerequisite: validate the same trusted /usr/bin/env used by execution, never project PATH.")
         public List<String> invoke(File work, VirtualChannel channel) throws IOException {
             AgentFiles.privateDirectory(work.toPath());
             String arch = PinnedTools.architecture();
