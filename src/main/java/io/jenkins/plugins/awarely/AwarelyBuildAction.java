@@ -11,6 +11,18 @@ public final class AwarelyBuildAction implements Action, RunAction2, org.kohsuke
     private final List<ScanResult> results = new ArrayList<>();
 
     public synchronized void add(ScanResult result) {
+        // Parallel or repeated identical steps have no unambiguous baseline.
+        if (result.comparisonScope() != null) {
+            for (ScanResult other : results) {
+                if (!other.getArtifactPath().equals(result.getArtifactPath())
+                        && result.comparisonScope().equals(other.comparisonScope())) {
+                    var unavailable = BuildComparison.unavailable(
+                            "Multiple matching steps in this build; give each application a distinct label/path.");
+                    other.setComparison(unavailable);
+                    result.setComparison(unavailable);
+                }
+            }
+        }
         for (int i = 0; i < results.size(); i++) {
             if (results.get(i).getArtifactPath().equals(result.getArtifactPath())) {
                 results.set(i, result);

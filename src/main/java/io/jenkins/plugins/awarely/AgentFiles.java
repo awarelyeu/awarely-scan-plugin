@@ -69,7 +69,16 @@ final class AgentFiles {
             Path ws = workspace.toPath().toRealPath();
             if (ws.startsWith(cache) || cache.startsWith(ws))
                 throw new IOException("Workspace and tool directories must be separate");
-            Path input = ws.resolve(ScanPolicy.relativePath(path)).toRealPath();
+            Path input;
+            try {
+                input = ws.resolve(ScanPolicy.relativePath(path)).toRealPath();
+            } catch (java.nio.file.NoSuchFileException e) {
+                throw new IOException(
+                        "Selected path does not exist. Use a path relative to the workspace and check out/build the application before Awarely.");
+            } catch (java.nio.file.AccessDeniedException e) {
+                throw new IOException(
+                        "Selected path is not accessible to the agent user. Review the directory permissions.");
+            }
             if (!input.startsWith(ws)) throw new IOException("Selected input escapes the build workspace");
             if (!"linux".equals(collector)) {
                 boolean isFile = collector.equals("existing") || collector.equals("import");

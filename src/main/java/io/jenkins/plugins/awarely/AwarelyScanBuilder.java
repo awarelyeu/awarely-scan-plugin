@@ -33,8 +33,9 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             path = ".",
             applicationLabel = "application",
             credentialsId = "",
-            severityThreshold = "REPORT_ONLY";
-    private boolean failOnIncomplete = true, allPackages;
+            severityThreshold = "REPORT_ONLY",
+            policyResult = "UNSTABLE";
+    private boolean failOnIncomplete = true, allPackages, preflightOnly;
 
     @DataBoundConstructor
     public AwarelyScanBuilder(String collector) {
@@ -71,6 +72,25 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     public boolean isAllPackages() {
         return allPackages;
+    }
+
+    public String getPolicyResult() {
+        // Jobs saved before this setting existed retain their original behavior.
+        return policyResult == null ? "UNSTABLE" : policyResult;
+    }
+
+    public boolean isPreflightOnly() {
+        return preflightOnly;
+    }
+
+    @DataBoundSetter
+    public void setPolicyResult(String v) {
+        policyResult = ScanPolicy.choice(v, Set.of("UNSTABLE", "FAILURE"), "policy result");
+    }
+
+    @DataBoundSetter
+    public void setPreflightOnly(boolean v) {
+        preflightOnly = v;
     }
 
     @DataBoundSetter
@@ -145,6 +165,27 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
         FilePath work = new FilePath(workspace.getChannel(), session.work);
         String artifactPrefix = "awarely/" + UUID.randomUUID();
         try {
+            if (preflightOnly) {
+                listener.getLogger().println("Awarely configuration check only: no scan, download or Monitor request.");
+                for (String message : work.act(new Preflight.Check(
+                        session.home, session.input, collector, pins, config.isAllowToolDownloads())))
+                    listener.getLogger().println(message);
+                if (!mode.equals("local")) {
+                    try (MonitorCredential credential = MonitorCredential.load(run, credentialsId)) {
+                        listener.getLogger()
+                                .println(
+                                        "PASS: Secret file is accessible, its JSON format is valid and its API origin is approved.");
+                    }
+                    listener.getLogger()
+                            .println(
+                                    "NOT TESTED: server connectivity, token expiry/revocation, Check/Sync scope, account quota and source state. These require the real API operation.");
+                }
+                listener.getLogger()
+                        .println(
+                                "Configuration checks passed. Turn off 'Validate configuration only' to collect and process inventory. No vulnerability assessment was performed.");
+                return;
+            }
+            String sourceKey = "local";
             String binary = work.act(new PinnedTools.Prepare(pins, session.home, config.isAllowToolDownloads()));
             FilePath inventory = work.child("inventory.cdx.json");
             int code;
@@ -186,6 +227,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                                         ? "Checking the selected inventory. Saved inventory and alerts remain unchanged."
                                         : "Synchronizing only the credential's configured source.");
                 try (MonitorCredential credential = MonitorCredential.load(run, credentialsId)) {
+                    sourceKey = credential.sourceKey;
                     List<String> args = new ArrayList<>(List.of(
                             mode,
                             "--input",
@@ -218,7 +260,23 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             if (!artifacts.isEmpty())
                 run.pickArtifactManager()
                         .archive(work, launcher, new jenkins.util.BuildListenerAdapter(listener), artifacts);
+            result.complete(BuildComparison.scope(
+                    collector,
+                    mode,
+                    path,
+                    applicationLabel,
+                    allPackages,
+                    collector.equals("linux") ? node.getNodeName() : "",
+                    pins.getProperty("version"),
+                    sourceKey));
+            result.setComparison(BuildComparison.compare(
+                    run,
+                    result,
+                    inventoryBytes,
+                    mode.equals("check") ? work.child("check-result.json").act(new AgentFiles.Read()) : null));
             publishResult(run, result);
+            listener.getLogger()
+                    .println("Build comparison: " + result.getComparison().getMessage());
             if (mode.equals("check"))
                 listener.getLogger()
                         .printf(
@@ -230,14 +288,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                                 "Awarely completed: %d components; %s. No vulnerability assessment was performed.%n",
                                 result.getComponents(),
                                 mode.equals("sync") ? "source synchronized" : "local inventory archived");
-            if (result.isGateExceeded() || (failOnIncomplete && result.isIncomplete())) {
-                run.setResult(Result.UNSTABLE);
-                listener.getLogger()
-                        .println(
-                                result.isGateExceeded()
-                                        ? "Build marked UNSTABLE: version-confirmed matches reached the configured severity threshold."
-                                        : "Build marked UNSTABLE: inventory or vulnerability assessment is incomplete.");
-            }
+            applyPolicy(run, result, failOnIncomplete, getPolicyResult(), listener);
         } finally {
             try {
                 work.deleteRecursive();
@@ -248,6 +299,24 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                 run.setResult(Result.FAILURE);
             }
         }
+    }
+
+    static void applyPolicy(
+            Run<?, ?> run, ScanResult result, boolean failOnIncomplete, String policyResult, TaskListener listener)
+            throws AbortException {
+        if (!result.isGateExceeded() && !(failOnIncomplete && result.isIncomplete())) return;
+        String reason = result.isGateExceeded()
+                ? "version-confirmed matches reached the configured severity threshold"
+                : "inventory or vulnerability assessment is incomplete";
+        if ("FAILURE".equals(policyResult)) {
+            run.setResult(Result.FAILURE);
+            throw new AbortException("Awarely policy: " + reason
+                    + ". Build marked FAILURE; the step stops here. Inventory and report were preserved.");
+        }
+        run.setResult(Result.UNSTABLE);
+        listener.getLogger()
+                .println("Awarely policy: " + reason
+                        + ". Build marked UNSTABLE. Use skipStagesAfterUnstable() to skip later Declarative stages.");
     }
 
     private static void publishResult(Run<?, ?> run, ScanResult result) throws IOException {
@@ -276,11 +345,15 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             ScanPolicy.relativePath(path);
             ScanPolicy.label(applicationLabel);
             ScanPolicy.choice(severityThreshold, ScanPolicy.GATES, "threshold");
+            ScanPolicy.choice(getPolicyResult(), Set.of("UNSTABLE", "FAILURE"), "policy result");
         } catch (IllegalArgumentException e) {
             throw new AbortException(e.getMessage());
         }
         if (!mode.equals("local") && (credentialsId == null || credentialsId.isBlank()))
             throw new AbortException("Select a Jenkins Secret file containing your Monitor credential JSON");
+        if (preflightOnly && mode.equals("sync") && collector.equals("python"))
+            throw new AbortException(
+                    "Python requirements.txt produces a partial inventory and cannot synchronize. Choose python-syft with installed dependencies, or use local/check.");
         if (allPackages && !collector.equals("linux"))
             throw new AbortException("All packages applies only to Linux host inventory");
         if (!severityThreshold.equals("REPORT_ONLY") && !mode.equals("check"))
@@ -398,6 +471,45 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
         @Override
         public String getDisplayName() {
             return "Awarely Scan: inventory, check or synchronize";
+        }
+
+        public ListBoxModel doFillCollectorItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("npm lockfile", "npm");
+            items.add("npm installed files (Syft)", "npm-syft");
+            items.add("Python requirements.txt (partial)", "python");
+            items.add("Python installed environment (Syft)", "python-syft");
+            items.add("Java built artifacts (Syft)", "java");
+            items.add("Other application ecosystems (Syft; CVEs unevaluated)", "other");
+            items.add("Linux agent host", "linux");
+            items.add("Import external CycloneDX application SBOM", "import");
+            items.add("Existing Awarely SBOM", "existing");
+            return items;
+        }
+
+        public ListBoxModel doFillModeItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("Save local inventory only", "local");
+            items.add("Check CVEs", "check");
+            items.add("Synchronize one source", "sync");
+            return items;
+        }
+
+        public ListBoxModel doFillSeverityThresholdItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("Report only", "REPORT_ONLY");
+            items.add("Critical", "CRITICAL");
+            items.add("High", "HIGH");
+            items.add("Medium", "MEDIUM");
+            items.add("Low", "LOW");
+            return items;
+        }
+
+        public ListBoxModel doFillPolicyResultItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("UNSTABLE — report and continue", "UNSTABLE");
+            items.add("FAILURE — stop this step", "FAILURE");
+            return items;
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item) {

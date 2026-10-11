@@ -70,12 +70,7 @@ final class PinnedTools {
         public String invoke(File directory, VirtualChannel channel) throws IOException, InterruptedException {
             Path work = directory.toPath();
             AgentFiles.privateDirectory(work);
-            String arch =
-                    switch (System.getProperty("os.arch")) {
-                        case "amd64", "x86_64" -> "amd64";
-                        case "aarch64", "arm64" -> "arm64";
-                        default -> throw new IOException("Unsupported agent architecture");
-                    };
+            String arch = architecture();
             String version = pins.getProperty("version"),
                     file = "awarely-scan_" + version + "_linux_" + arch + ".tar.gz";
             Path cache = Path.of(home);
@@ -142,6 +137,14 @@ final class PinnedTools {
             Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwx------"));
             return binary.toString();
         }
+    }
+
+    static String architecture() throws IOException {
+        return switch (System.getProperty("os.arch")) {
+            case "amd64", "x86_64" -> "amd64";
+            case "aarch64", "arm64" -> "arm64";
+            default -> throw new IOException("Unsupported agent architecture; choose a Linux amd64 or arm64 agent");
+        };
     }
 
     static void verify(Path file, String expected, int limit) throws IOException {

@@ -1,11 +1,13 @@
-# Awarely Scan for Jenkins 0.1.0-alpha.2
+# Awarely Scan for Jenkins 0.1.0-alpha.3
 
-This preview is built and published from the dedicated `awarelyeu/awarely-scan-plugin` repository, with updated repository metadata, CI actions and English/Romanian installation guides. The HPI, dependency SBOM and checksums have public provenance attestations tied to this repository and release tag. The plugin runtime source and fixed CLI/Syft versions are unchanged from 0.1.0-alpha.1.
+This preview makes setup and build outcomes explicit:
 
-Collect an application SBOM during a build, check it against Awarely Monitor and explicitly synchronize a configured source after deployment. The plugin supports Linux agents, native npm/Python manifests, managed Syft for npm/Python/Java/other ecosystems, external CycloneDX application imports and existing Awarely inventories.
+- **Validate configuration only** checks the actual agent, paths, private output permissions, CLI cache/download policy, administrator approvals and credential format without running a scan, downloading tools or contacting Monitor. Pending downloads and untested Syft/API readiness are stated clearly. Field help includes concrete examples and recovery steps.
+- **Choose UNSTABLE or FAILURE** for severity and incomplete-coverage policies. UNSTABLE remains the default for existing jobs. FAILURE preserves evidence and stops normal step execution; deliberate Pipeline error handling still applies.
+- **Changes since the previous build** shows components added/removed and observed CVE-match differences from retained full reports. Scope/destination compatibility, completed baselines and coverage are required; changed catalog dates are disclosed. Missing data is not reported as remediation.
 
-Pipeline and Freestyle jobs share the same CLI, private outputs, credential handling and reports. Administrators approve exact jobs, agent nodes and API origins; synchronization and Linux host inventory require separate approval. Severity gates use version-confirmed matches; partial inventories and unevaluated components have an independent policy. API failures remain failures and preserve the local SBOM.
+English and Romanian walkthroughs cover installation, preflight, Pipeline/Freestyle configuration, build policies and comparison limitations. The fixed CLI remains v0.10.0 with managed Syft 1.54.1. Tool verification, scoped credentials, separate host/sync approvals and sync ordering protections remain in place.
 
-Jenkins 2.580.1 or newer and Linux amd64/arm64 agents are required. JDK 21 is the tested runtime. Use isolated agents for trusted jobs. This preview is distributed as a provenance-attested HPI in this repository, not through the Jenkins Update Center. Verify the artifact before installation.
+Requires Jenkins 2.580.1 or newer, JDK 21 on the tested baseline, and isolated non-root Linux amd64/arm64 agents. This is a GitHub preview HPI, not a Jenkins Update Center release. Verify its public provenance and checksum and test on staging before production use.
 
 [English walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md) · [Release verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)
