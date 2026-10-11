@@ -1,6 +1,6 @@
 # Plugin releases and verification
 
-The current GitHub preview is **0.1.0-alpha.3**, built in this dedicated plugin repository. It uses CLI **v0.10.0** and managed Syft **1.54.1**. It is not currently listed in the Jenkins Update Center; install the verified HPI on a staging controller for acceptance testing.
+The current GitHub preview is **0.1.0-alpha.3**, built in this dedicated plugin repository. It uses CLI **v0.10.1** and managed Syft **1.54.1**. It is not currently listed in the Jenkins Update Center; install the verified HPI on a staging controller for acceptance testing.
 
 Download these four files from the [v0.1.0-alpha.3 release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.3) into a new empty directory:
 

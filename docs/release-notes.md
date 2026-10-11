@@ -6,7 +6,7 @@ This preview makes setup and build outcomes explicit:
 - **Choose UNSTABLE or FAILURE** for severity and incomplete-coverage policies. UNSTABLE remains the default for existing jobs. FAILURE preserves evidence and stops normal step execution; deliberate Pipeline error handling still applies.
 - **Changes since the previous build** shows components added/removed and observed CVE-match differences from retained full reports. Scope/destination compatibility, completed baselines and coverage are required; changed catalog dates are disclosed. Missing data is not reported as remediation.
 
-English and Romanian walkthroughs cover installation, preflight, Pipeline/Freestyle configuration, build policies and comparison limitations. The fixed CLI remains v0.10.0 with managed Syft 1.54.1. Tool verification, scoped credentials, separate host/sync approvals and sync ordering protections remain in place.
+English and Romanian walkthroughs cover installation, preflight, Pipeline/Freestyle configuration, build policies and comparison limitations. The fixed CLI is updated to v0.10.1, built with Go 1.27.2 security fixes; managed Syft remains 1.54.1. Tool verification, scoped credentials, separate host/sync approvals and sync ordering protections remain in place.
 
 Requires Jenkins 2.580.1 or newer, JDK 21 on the tested baseline, and isolated non-root Linux amd64/arm64 agents. This is a GitHub preview HPI, not a Jenkins Update Center release. Verify its public provenance and checksum and test on staging before production use.
 

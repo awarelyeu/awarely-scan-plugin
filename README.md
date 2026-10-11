@@ -2,7 +2,7 @@
 
 **Preview: 0.1.0-alpha.3. Test on a staging controller before production use.**
 
-[Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.0 and managed Syft 1.54.1.
+[Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.1 and managed Syft 1.54.1.
 
 Generate an SBOM during a build, check it with Awarely Monitor, and explicitly synchronize one inventory source when appropriate. The plugin uses the same CLI and managed Syft as the terminal workflow. It does not build your application or install its dependencies.
 
