@@ -54,7 +54,7 @@ public final class AwarelyBuildAction implements Action, RunAction2, org.kohsuke
 
     @Override
     public String getIconFileName() {
-        return "symbol-shield";
+        return "symbol-awarely-scan plugin-awarely-scan";
     }
 
     @Override

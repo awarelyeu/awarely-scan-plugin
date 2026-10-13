@@ -2,13 +2,13 @@
 
 Plugin source, documentation and current preview releases live in [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Jenkins Update Center publication is pending hosting approval.
 
-This guide covers preview 0.1.0-alpha.3. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
+This guide covers preview 0.1.0-alpha.4. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
 
 ## 1. Prepare Jenkins once
 
 You need Jenkins 2.580.1 or newer, a supported Jenkins Java runtime (JDK 21 for this plugin's tested baseline), and a Linux amd64 or arm64 agent running as a regular user. Keep the controller's executors at zero. Application builds may require Node.js/npm, Python or Maven/Java; the scanner itself does not require these runtimes for reading existing files.
 
-Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.3) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
+Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.4) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
 
 Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
 
@@ -81,7 +81,7 @@ pipeline {
 
 The checked-out workspace must contain your application's lockfile. Replace example paths and labels with your own values. A native manifest scan does not need `npm install`; a Syft scan inspects installed or built artifacts, so run your usual dependency/build steps first.
 
-Open the build's **Awarely Scan** page and its **Artifacts**. A fresh inventory is archived under `awarely/<run-id>/inventory.cdx.json`. Inventory files reveal software identities and versions; restrict build/artifact read access and choose appropriate retention.
+Open the build's **Awarely Scan** page (the shield with an A in the sidebar) and its **Artifacts**. The icon identifies the plugin; check the build status and report for assessment results. A fresh inventory is archived under `awarely/<run-id>/inventory.cdx.json`. Inventory files reveal software identities and versions; restrict build/artifact read access and choose appropriate retention.
 
 ## 4. Check CVEs and set a build policy
 
