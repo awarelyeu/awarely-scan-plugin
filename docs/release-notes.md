@@ -1,12 +1,8 @@
-# Awarely Scan for Jenkins 0.1.0-alpha.3
+# Awarely Scan for Jenkins 0.1.0-alpha.4
 
-This preview makes setup and build outcomes explicit:
+The build sidebar now shows Awarely Scan with a bundled shield-and-A icon. The previous icon referenced an unavailable Jenkins symbol and displayed a fallback X. The new SVG follows the Jenkins theme, works offline and adds no plugin dependency.
 
-- **Validate configuration only** checks the actual agent, paths, private output permissions, CLI cache/download policy, administrator approvals and credential format without running a scan, downloading tools or contacting Monitor. Pending downloads and untested Syft/API readiness are stated clearly. Field help includes concrete examples and recovery steps.
-- **Choose UNSTABLE or FAILURE** for severity and incomplete-coverage policies. UNSTABLE remains the default for existing jobs. FAILURE preserves evidence and stops normal step execution; deliberate Pipeline error handling still applies.
-- **Changes since the previous build** shows components added/removed and observed CVE-match differences from retained full reports. Scope/destination compatibility, completed baselines and coverage are required; changed catalog dates are disclosed. Missing data is not reported as remediation.
-
-English and Romanian walkthroughs cover installation, preflight, Pipeline/Freestyle configuration, build policies and comparison limitations. The fixed CLI is updated to v0.10.1, built with Go 1.27.2 security fixes; managed Syft remains 1.54.1. Tool verification, scoped credentials, separate host/sync approvals and sync ordering protections remain in place.
+This is a presentation-only correction to alpha.3. Inventory collection, API checks, synchronization, preflight, build policies and build comparison behavior are unchanged. The pinned CLI remains **v0.10.1**, with managed Syft **1.54.1**. English and Romanian guides identify the sidebar icon and link to the updated preview.
 
 Requires Jenkins 2.580.1 or newer, JDK 21 on the tested baseline, and isolated non-root Linux amd64/arm64 agents. This is a GitHub preview HPI, not a Jenkins Update Center release. Verify its public provenance and checksum and test on staging before production use.
 

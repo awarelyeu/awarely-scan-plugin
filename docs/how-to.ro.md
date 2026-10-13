@@ -2,13 +2,13 @@
 
 Codul pluginului, documentația și release-urile preview curente sunt în [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Publicarea în Jenkins Update Center așteaptă aprobarea de hosting.
 
-Acest ghid acoperă preview-ul 0.1.0-alpha.3. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
+Acest ghid acoperă preview-ul 0.1.0-alpha.4. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
 
 ## 1. Pregătește Jenkins o singură dată
 
 Ai nevoie de Jenkins 2.580.1 sau mai nou, un Java compatibil cu versiunea Jenkins (testăm cu JDK 21) și un agent Linux amd64 sau arm64 care rulează fără root. Controllerul trebuie să aibă zero executori. Build-ul aplicației poate necesita Node.js/npm, Python ori Maven/Java; scannerul citește fișiere deja existente și nu instalează aceste runtime-uri.
 
-Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.3) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
+Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.4) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
 
 În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
 
@@ -81,7 +81,7 @@ pipeline {
 
 Workspace-ul trebuie să conțină lockfile-ul aplicației. Înlocuiește exemplele cu propriile nume și căi. Pentru citirea nativă a lockfile-ului nu trebuie să rulezi `npm install`. Syft citește dependențele instalate și artefactele construite, deci pregătește-le într-un pas de build anterior.
 
-După build, deschide **Awarely Scan** și **Artifacts**. Inventarul apare la `awarely/<run-id>/inventory.cdx.json`. Artefactele descriu software-ul tău; limitează accesul la ele și perioada de păstrare.
+După build, deschide **Awarely Scan** (scutul cu litera A din meniul lateral) și **Artifacts**. Iconița identifică pluginul; rezultatul evaluării apare în starea buildului și în raport. Inventarul apare la `awarely/<run-id>/inventory.cdx.json`. Artefactele descriu software-ul tău; limitează accesul la ele și perioada de păstrare.
 
 ## 4. Verificarea CVE și politica build-ului
 
