@@ -1,22 +1,22 @@
 # Plugin releases and verification
 
-The current stable GitHub release is **0.1.0**, built in this dedicated plugin repository. It uses CLI **v0.11.0** and managed Syft **1.54.1**. It is not currently listed in the Jenkins Update Center; install the verified HPI manually and validate your configuration on staging before production use.
+The current stable GitHub release is **0.2.0**, built in this dedicated plugin repository. It uses CLI **v0.12.0** and managed Syft **1.54.1**. It is not currently listed in the Jenkins Update Center; install the verified HPI manually and validate your configuration on staging before production use.
 
-Download these four files from the [v0.1.0 release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0) into a new empty directory:
+Download these four files from the [v0.2.0 release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0) into a new empty directory:
 
-- `awarely-scan-jenkins-0.1.0.hpi`
-- `awarely-scan-jenkins-0.1.0.hpi.sigstore.jsonl`
-- `awarely-scan-jenkins-0.1.0.cdx.json`
+- `awarely-scan-jenkins-0.2.0.hpi`
+- `awarely-scan-jenkins-0.2.0.hpi.sigstore.jsonl`
+- `awarely-scan-jenkins-0.2.0.cdx.json`
 - `SHA256SUMS`
 
 Before installing controller code, run this in that directory with an up-to-date GitHub CLI:
 
 ```sh
-gh attestation verify awarely-scan-jenkins-0.1.0.hpi \
-  --bundle awarely-scan-jenkins-0.1.0.hpi.sigstore.jsonl \
+gh attestation verify awarely-scan-jenkins-0.2.0.hpi \
+  --bundle awarely-scan-jenkins-0.2.0.hpi.sigstore.jsonl \
   --repo awarelyeu/awarely-scan-plugin \
   --signer-workflow awarelyeu/awarely-scan-plugin/.github/workflows/preview-release.yml \
-  --source-ref refs/tags/v0.1.0 \
+  --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners
 sha256sum --check SHA256SUMS
 ```

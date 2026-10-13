@@ -2,13 +2,13 @@
 
 Codul pluginului, documentația și release-urile curente sunt în [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Publicarea în Jenkins Update Center așteaptă aprobarea de hosting.
 
-Acest ghid acoperă versiunea stabilă 0.1.0, distribuită pe GitHub. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
+Acest ghid acoperă versiunea stabilă 0.2.0, distribuită pe GitHub. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
 
 ## 1. Pregătește Jenkins o singură dată
 
 Ai nevoie de Jenkins 2.580.1 sau mai nou, un Java compatibil cu versiunea Jenkins (testăm cu JDK 21) și un agent Linux amd64 sau arm64 care rulează fără root. Controllerul trebuie să aibă zero executori. Build-ul aplicației poate necesita Node.js/npm, Python ori Maven/Java; scannerul citește fișiere deja existente și nu instalează aceste runtime-uri.
 
-Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
+Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
 
 În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
 
@@ -135,7 +135,7 @@ Alte variante:
 | --- | --- |
 | `npm-syft` | Directorul aplicației Node.js cu dependențele instalate |
 | `linux` | Pachetele sistemului Linux al agentului; `allPackages: true` extinde inventarul |
-| `other` | Fișiere NuGet, Go, Composer, RubyGems sau Cargo; evaluarea CVE este încă neevaluată |
+| `other` | Fișiere NuGet/Go cu verificare CVE; Composer/RubyGems/Cargo rămân neevaluate |
 | `import` | Fișier CycloneDX extern cu pachetele aplicației |
 | `existing` | Un inventar Awarely existent, fără repetarea scanării |
 
@@ -201,3 +201,25 @@ Calea este relativă la workspace. Nu pune secrete în etichete sau căi; folose
 **INSUFFICIENT_SCOPE** indică un credential fără dreptul cerut: pentru sincronizare folosește un credential Sync. **INVALID_CREDENTIAL** poate însemna invalid, expirat sau revocat: înlocuiește Secret file în Jenkins. **INVENTORY_CONFLICT** indică o sursă modificată de altă operație: inspectează starea curentă. Dacă sync expiră sau confirmarea nu poate fi salvată, sincronizarea poate fi deja efectuată. Nu relansa automat.
 
 Erorile previzibile de inventar invalid, cale cu ../ sau symlink spre exterior opresc pasul cu explicație și soluție, fără stack trace Java. Defecțiunile interne neașteptate necesită în continuare investigația administratorului. Politicile de acoperire și severitate rămân neschimbate.
+
+## Biblioteci NuGet/.NET și module Go
+
+1. Alege **NuGet / Go and other application ecosystems (Syft)** sau `collector: 'other'` în Pipeline.
+2. Execută restore/build separat, într-o etapă anterioară. Pentru .NET, păstrează `packages.lock.json`, `project.assets.json` sau `.deps.json` publicat. Pentru Go, păstrează `go.mod`/`go.sum` sau un executabil cu informații despre module. Selectează directorul din workspace care conține aceste fișiere.
+3. Alege **Check** și credentialul Monitor de tip **Secret file** aprobat. Începe cu **Validate configuration only**, apoi dezactivează opțiunea pentru verificarea reală.
+4. Deschide **Awarely Scan** și artefactele JSON. Potrivirile confirmate pe versiune folosesc politica de severitate existentă; versiunile/intervalele neacceptate apar ca neevaluate și activează `failOnIncomplete` dacă este bifat.
+
+```groovy
+stage('Check dependency inventory') {
+    awarelyScan collector: 'other', mode: 'check',
+        path: 'app', applicationLabel: 'My .NET or Go application',
+        credentialsId: 'monitor-check', severityThreshold: 'HIGH',
+        policyResult: 'FAILURE', failOnIncomplete: true
+}
+```
+
+Înlocuiește `app` și `monitor-check` cu directorul din workspace și ID-ul credentialului Jenkins. Administratorul trebuie să aprobe exact acest job și agentul de încredere înainte de cereri către Monitor. Scanerul nu execută restore/build și nu instalează SDK-uri.
+
+Monitor cere un aviz pentru ecosistemul și pachetul exact. La NuGet, numele nu ține cont de majuscule; la Go, calea păstrează majusculele și sufixul versiunii majore, precum `/v2`. Sunt comparate explicit reviziile/prerelease-urile NuGet și versiunile SemVer/pseudo Go. Intervalele neacceptate produc potriviri pe produs și `ADVISORY_RANGE_NOT_EVALUATED`, fără confirmare pe versiune. Build-urile Go dirty/development rămân neevaluate. Modulul principal compilat fără o versiune de release este păstrat cu versiune necunoscută, iar inventarul devine parțial; Check rămâne disponibil, însă Sync este refuzat. Nu sunt incluse biblioteca standard/toolchain Go, deducerea vulnerabilității runtime-ului .NET din numele NuGet sau analiza funcțiilor executate. Composer, RubyGems și Cargo păstrează doar inventar/sync.
+
+După remedierea dependențelor, execută din nou restore/build și jobul. Verifică versiunile și acoperirea înainte să interpretezi scăderea numărului de potriviri. Perioada de evaluare a avizelor pentru aplicații se aplică în continuare.

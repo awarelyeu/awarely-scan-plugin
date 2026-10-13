@@ -578,7 +578,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             items.add("Python requirements.txt (partial)", "python");
             items.add("Python installed environment (Syft)", "python-syft");
             items.add("Java built artifacts (Syft)", "java");
-            items.add("Other application ecosystems (Syft; CVEs unevaluated)", "other");
+            items.add("NuGet / Go and other application ecosystems (Syft)", "other");
             items.add("Linux agent host", "linux");
             items.add("Import external CycloneDX application SBOM", "import");
             items.add("Existing Awarely SBOM", "existing");

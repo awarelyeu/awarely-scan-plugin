@@ -1,8 +1,8 @@
 # Awarely Scan for Jenkins
 
-**Stable release: 0.1.0. Available as a verified HPI on GitHub.**
+**Stable release: 0.2.0. Available as a verified HPI on GitHub.**
 
-[Download and verify the HPI](docs/releases.md). Pins: CLI v0.11.0 and managed Syft 1.54.1.
+[Download and verify the HPI](docs/releases.md). Pins: CLI v0.12.0 and managed Syft 1.54.1.
 
 Generate an SBOM during a build, check it with Awarely Monitor, and explicitly synchronize one inventory source when appropriate. The plugin uses the same CLI and managed Syft as the terminal workflow. It does not build your application or install its dependencies.
 
@@ -13,7 +13,7 @@ This is the dedicated plugin repository. The [Awarely CLI](https://github.com/aw
 [![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
 [![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
 
-Download the current stable **0.1.0** release from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
+Download the current stable **0.2.0** release from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
 
 ## Supported workflows
 
@@ -24,7 +24,7 @@ Download the current stable **0.1.0** release from [this repository's releases](
 | `python` | Directory with requirements.txt | Native, partial inventory |
 | `python-syft` | Directory containing an installed virtual environment | Managed Syft |
 | `java` | Built Java artifacts and their dependencies | Managed Syft |
-| `other` | NuGet, Go, Composer, RubyGems or Cargo application files | Managed Syft; CVE assessment currently unevaluated |
+| `other` | NuGet, Go, Composer, RubyGems or Cargo application files | Managed Syft; NuGet/Go CVE checks supported; other ecosystems unevaluated |
 | `linux` | The Linux Jenkins agent | Focused packages, or all installed packages |
 | `import` | An external CycloneDX application SBOM | Validated application-package import |
 | `existing` | A previously generated Awarely inventory | Reuse without rescanning |
