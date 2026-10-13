@@ -2,13 +2,13 @@
 
 Codul pluginului, documentația și release-urile preview curente sunt în [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Publicarea în Jenkins Update Center așteaptă aprobarea de hosting.
 
-Acest ghid acoperă preview-ul 0.1.0-alpha.4. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
+Acest ghid acoperă preview-ul 0.1.0-alpha.5. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
 
 ## 1. Pregătește Jenkins o singură dată
 
 Ai nevoie de Jenkins 2.580.1 sau mai nou, un Java compatibil cu versiunea Jenkins (testăm cu JDK 21) și un agent Linux amd64 sau arm64 care rulează fără root. Controllerul trebuie să aibă zero executori. Build-ul aplicației poate necesita Node.js/npm, Python ori Maven/Java; scannerul citește fișiere deja existente și nu instalează aceste runtime-uri.
 
-Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.4) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
+Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.5) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
 
 În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
 
@@ -184,3 +184,20 @@ Actualizează deliberat pluginul dintr-un release verificat și testează întâ
 Rotește/revocă credențialele când se schimbă joburile ori permisiunile. Păstrează numai artefactele necesare. Dacă un build întrerupt nu își poate șterge fișierele private, curăță sau recreează agentul izolat înainte de reutilizare.
 
 Verificările respectă limita API a contului Monitor (în prezent șase verificări pe minut, cu un număr limitat de operații simultane). Decalează joburile paralele; nu crea credențiale suplimentare pentru a ocoli limita contului. O cerere refuzată produce o eroare vizibilă și păstrează SBOM-ul local.
+
+## Progresul în consolă și logarea detaliată
+
+Fiecare pas Awarely explică validarea inputului, pregătirea uneltelor verificate, colectarea, așteptarea API-ului, acoperirea, locația rapoartelor, politica și durata. Mesajele sunt aceleași în Pipeline și Freestyle. Un mesaj de așteptare indică o operație aflată încă în termenul permis; nu trimite o cerere nouă. Finalizarea pasului nu anulează un rezultat UNSTABLE/FAILURE anterior al buildului.
+
+Mesajele normale sunt suficiente pentru utilizarea zilnică. Pentru detalii despre verificarea cache-ului, inputul selectat și modul de rulare a uneltelor, bifează **Detailed logging (safe operational details)** în Freestyle sau adaugă opțiunea în Pipeline:
+
+```groovy
+awarelyScan collector: 'npm', mode: 'check', path: 'app',
+    credentialsId: 'monitor-check', detailedLogging: true
+```
+
+Calea este relativă la workspace. Nu pune secrete în etichete sau căi; folosește credentiale Jenkins de tip Secret file. Ambele niveluri ascund ieșirea brută a proceselor, variabilele de mediu, conținutul credentialelor și corpurile răspunsurilor API. Pluginul acceptă doar coduri CLI cunoscute, fără date atașate, și afișează mesaje din propriul catalog limitat. Codurile necunoscute sunt ignorate; rezultatul depinde de exit code și de artefactele validate.
+
+**INSUFFICIENT_SCOPE** indică un credential fără dreptul cerut: pentru sincronizare folosește un credential Sync. **INVALID_CREDENTIAL** poate însemna invalid, expirat sau revocat: înlocuiește Secret file în Jenkins. **INVENTORY_CONFLICT** indică o sursă modificată de altă operație: inspectează starea curentă. Dacă sync expiră sau confirmarea nu poate fi salvată, sincronizarea poate fi deja efectuată. Nu relansa automat.
+
+Erorile previzibile de inventar invalid, cale cu ../ sau symlink spre exterior opresc pasul cu explicație și soluție, fără stack trace Java. Defecțiunile interne neașteptate necesită în continuare investigația administratorului. Politicile de acoperire și severitate rămân neschimbate.

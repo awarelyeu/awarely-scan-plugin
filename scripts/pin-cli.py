@@ -1,6 +1,7 @@
 """Authenticate both CLI archives before writing or checking the plugin's fixed tool pins."""
 import argparse
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -10,6 +11,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / 'src/main/resources/io/jenkins/plugins/awarely/tools.properties'
+DIAGNOSTICS = MANIFEST.with_name('diagnostics.json')
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--version', help='Exact published CLI tag (required when changing pins)')
 p.add_argument('--check', action='store_true', help='Verify current pins without modifying files')
@@ -21,6 +23,7 @@ if not re.fullmatch(r'v\d+\.\d+\.\d+(?:-alpha\.\d+)?', version):
 if not args.check and not args.version:
     raise SystemExit('Changing pins requires --version TAG')
 pins = {'version': version}
+authenticated_catalog = None
 with tempfile.TemporaryDirectory(prefix='awarely-pin-') as work:
     work = Path(work)
     home = work / 'home'
@@ -40,12 +43,23 @@ with tempfile.TemporaryDirectory(prefix='awarely-pin-') as work:
         archive = work / name
         pins[arch + '.archive'] = hashlib.sha256(archive.read_bytes()).hexdigest()
         found = False
+        catalog = None
         total = 0
         with tarfile.open(archive, 'r|gz') as tar:
             for count, entry in enumerate(tar, 1):
                 total += entry.size
                 if entry.size < 0 or total > 100 * 1024 * 1024 or count > 200:
                     raise SystemExit('Archive exceeds bounds')
+                if entry.name == 'internal/diagnostics/catalog.json':
+                    if catalog is not None or not entry.isfile() or entry.size > 65536:
+                        raise SystemExit('Invalid diagnostics catalog entry')
+                    catalog = tar.extractfile(entry).read(65537)
+                    if len(catalog) != entry.size:
+                        raise SystemExit('Invalid diagnostics catalog size')
+                    parsed = json.loads(catalog)
+                    if not isinstance(parsed.get('events'), dict) or not isinstance(parsed.get('errors'), dict):
+                        raise SystemExit('Invalid diagnostics catalog')
+                    continue
                 if entry.name != 'awarely-scan':
                     continue
                 if found or not entry.isfile() or entry.size > 40 * 1024 * 1024:
@@ -57,11 +71,17 @@ with tempfile.TemporaryDirectory(prefix='awarely-pin-') as work:
                 pins[arch + '.binary'] = hashlib.sha256(binary).hexdigest()
         if not found:
             raise SystemExit('Missing executable')
+        if catalog is None or (authenticated_catalog is not None and catalog != authenticated_catalog):
+            raise SystemExit('Missing or inconsistent diagnostics catalog')
+        authenticated_catalog = catalog
 if args.check:
     if current != pins:
         raise SystemExit('Tool pins differ from the authenticated release')
-    print('PASS: both CLI archives and executable pins match authenticated release provenance')
+    if DIAGNOSTICS.read_bytes() != authenticated_catalog:
+        raise SystemExit('Diagnostics catalog differs from the authenticated release')
+    print('PASS: CLI pins and diagnostic messages match both authenticated release archives')
 else:
     MANIFEST.write_text('# Authenticated with scripts/pin-cli.py; never edit digests by hand.\n' +
                         ''.join(f'{k}={v}\n' for k, v in pins.items()))
-    print('Updated fixed CLI pins after verifying both public provenance bundles')
+    DIAGNOSTICS.write_bytes(authenticated_catalog)
+    print('Updated CLI pins and diagnostic catalog after verifying both public provenance bundles')

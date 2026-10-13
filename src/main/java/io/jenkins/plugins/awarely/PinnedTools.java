@@ -59,11 +59,19 @@ final class PinnedTools {
         private final Properties pins;
         private final String home;
         private final boolean download;
+        private final hudson.model.TaskListener listener;
+        private final boolean detailed;
 
         Prepare(Properties pins, String home, boolean download) {
+            this(pins, home, download, hudson.model.TaskListener.NULL, false);
+        }
+
+        Prepare(Properties pins, String home, boolean download, hudson.model.TaskListener listener, boolean detailed) {
             this.pins = pins;
             this.home = home;
             this.download = download;
+            this.listener = listener;
+            this.detailed = detailed;
         }
 
         @Override
@@ -71,6 +79,7 @@ final class PinnedTools {
             Path work = directory.toPath();
             AgentFiles.privateDirectory(work);
             String arch = architecture();
+            listener.getLogger().println("[Awarely] Agent architecture: Linux " + arch + ".");
             String version = pins.getProperty("version"),
                     file = "awarely-scan_" + version + "_linux_" + arch + ".tar.gz";
             Path cache = Path.of(home);
@@ -80,6 +89,7 @@ final class PinnedTools {
                 if (!download)
                     throw new IOException(
                             "Pinned scanner is absent. Ask an administrator to enable verified tool downloads or prepopulate the documented cache");
+                listener.getLogger().println("[Awarely] Downloading the approved pinned CLI release from GitHub.");
                 Path temp = Files.createTempFile(
                         cache,
                         "download-",
@@ -101,6 +111,8 @@ final class PinnedTools {
                 }
             }
             verify(archive, pins.getProperty(arch + ".archive"), 40 * 1024 * 1024);
+            if (detailed)
+                listener.getLogger().println("[Awarely] CLI archive in cache passed pinned digest verification.");
             Path binary = work.resolve("awarely-scan");
             boolean found = false;
             long expanded = 0;
@@ -135,6 +147,8 @@ final class PinnedTools {
             if (!found) throw new IOException("Release executable is missing");
             verify(binary, pins.getProperty(arch + ".binary"), 40 * 1024 * 1024);
             Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwx------"));
+            if (detailed)
+                listener.getLogger().println("[Awarely] Extracted CLI executable passed pinned digest verification.");
             return binary.toString();
         }
     }

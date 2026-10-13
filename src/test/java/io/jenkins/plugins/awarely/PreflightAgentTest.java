@@ -75,10 +75,12 @@ class PreflightAgentTest {
         job.getBuildersList().add(step);
         var missing = j.assertBuildStatus(Result.FAILURE, job.scheduleBuild2(0));
         j.assertLogContains("Selected path does not exist", missing);
+        assertFalse(JenkinsRule.getLog(missing).contains("java.io.IOException"));
         var workspace = agent.getWorkspaceFor(job);
         workspace.child("escape").symlinkTo("/tmp", hudson.model.TaskListener.NULL);
         step.setPath("escape");
         var escaped = j.assertBuildStatus(Result.FAILURE, job.scheduleBuild2(0));
         j.assertLogContains("escapes the build workspace", escaped);
+        assertFalse(JenkinsRule.getLog(escaped).contains("java.io.IOException"));
     }
 }

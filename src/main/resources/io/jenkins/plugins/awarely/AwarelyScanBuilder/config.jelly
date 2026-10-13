@@ -2,6 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:f="lib/form" xmlns:c="lib/credentials">
 <p>Choose the application files, then decide whether to keep the inventory locally, check CVEs or synchronize a deployed source. Use the help icons for examples.</p>
 <f:entry title="Validate configuration only (no scan or upload)" field="preflightOnly"><f:checkbox/></f:entry>
+<f:entry title="Detailed logging (safe operational details)" field="detailedLogging"><f:checkbox/></f:entry>
 <f:entry title="What to scan" field="collector"><f:select/></f:entry>
 <f:entry title="Action" field="mode"><f:select/></f:entry>
 <f:entry title="Path relative to workspace" field="path"><f:textbox default="."/></f:entry>

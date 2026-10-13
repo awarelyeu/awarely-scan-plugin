@@ -2,13 +2,13 @@
 
 Plugin source, documentation and current preview releases live in [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Jenkins Update Center publication is pending hosting approval.
 
-This guide covers preview 0.1.0-alpha.4. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
+This guide covers preview 0.1.0-alpha.5. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
 
 ## 1. Prepare Jenkins once
 
 You need Jenkins 2.580.1 or newer, a supported Jenkins Java runtime (JDK 21 for this plugin's tested baseline), and a Linux amd64 or arm64 agent running as a regular user. Keep the controller's executors at zero. Application builds may require Node.js/npm, Python or Maven/Java; the scanner itself does not require these runtimes for reading existing files.
 
-Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.4) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
+Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.5) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
 
 Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
 
@@ -175,3 +175,20 @@ Update the Jenkins plugin deliberately from a verified release. Each plugin rele
 Revoke or rotate Monitor credentials when jobs change ownership or scope. Retain only the build artifacts you need. Clean or recycle isolated agents if a build aborts during filesystem cleanup.
 
 Checks are limited by the Monitor account’s API quota (currently six checks per minute, with bounded concurrency). Stagger parallel jobs; do not create additional credentials to bypass an account limit. A refused request fails visibly and preserves the local SBOM.
+
+## Console progress and detailed logging
+
+Every Awarely step now explains input validation, pinned-tool preparation, collection, API waiting, coverage, report locations, policy and elapsed time. The same messages apply to Pipeline and Freestyle. A waiting message means the current operation is still running within its deadline; it does not issue another request. A completed step does not clear an earlier UNSTABLE/FAILURE build result.
+
+Normal logging is enough for everyday use. For additional cache-verification, selected-input and tool-isolation details, enable **Detailed logging (safe operational details)** in the Freestyle step, or add this Pipeline option:
+
+```groovy
+awarelyScan collector: 'npm', mode: 'check', path: 'app',
+    credentialsId: 'monitor-check', detailedLogging: true
+```
+
+The input path is relative to the workspace. Keep secrets out of labels and paths; use Jenkins Secret file credentials. Both logging levels suppress raw child output, environment variables, credential contents and API bodies. The plugin accepts only known, payload-free CLI diagnostic codes and renders messages from its own bounded catalog. Unknown codes are ignored; exit codes and validated artifacts decide the outcome.
+
+If you see **INSUFFICIENT_SCOPE**, the credential does not permit the selected action: use a Sync credential for synchronization. **INVALID_CREDENTIAL** can mean invalid, expired or revoked: replace the Jenkins Secret file. **INVENTORY_CONFLICT** means another writer changed the source; inspect its current state first. If a sync times out or its receipt cannot be saved, it may already have committed. Do not blindly rerun it.
+
+Expected invalid-inventory, workspace traversal and external-symlink errors stop the step with recovery guidance instead of a Java stack trace. Unexpected internal failures still need administrator investigation. Coverage and severity policies remain unchanged.

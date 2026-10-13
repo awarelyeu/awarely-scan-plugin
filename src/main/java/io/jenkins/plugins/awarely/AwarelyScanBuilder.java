@@ -35,7 +35,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             credentialsId = "",
             severityThreshold = "REPORT_ONLY",
             policyResult = "UNSTABLE";
-    private boolean failOnIncomplete = true, allPackages, preflightOnly;
+    private boolean failOnIncomplete = true, allPackages, preflightOnly, detailedLogging;
 
     @DataBoundConstructor
     public AwarelyScanBuilder(String collector) {
@@ -83,6 +83,15 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
         return preflightOnly;
     }
 
+    public boolean isDetailedLogging() {
+        return detailedLogging;
+    }
+
+    @DataBoundSetter
+    public void setDetailedLogging(boolean value) {
+        detailedLogging = value;
+    }
+
     @DataBoundSetter
     public void setPolicyResult(String v) {
         policyResult = ScanPolicy.choice(v, Set.of("UNSTABLE", "FAILURE"), "policy result");
@@ -100,7 +109,9 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     @DataBoundSetter
     public void setPath(String v) {
-        path = ScanPolicy.relativePath(v);
+        // Validate at perform() before all agent access, so Pipeline reports a
+        // concise AbortException instead of a data-binding stack trace.
+        path = v;
     }
 
     @DataBoundSetter
@@ -134,7 +145,25 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
     public void perform(
             Run<?, ?> run, FilePath workspace, EnvVars environment, Launcher launcher, TaskListener listener)
             throws IOException, InterruptedException {
+        long started = System.nanoTime();
+        try {
+            performScan(run, workspace, environment, launcher, listener);
+        } catch (IOException error) {
+            if (error instanceof AbortException) throw error;
+            String message = UserErrors.message(error);
+            if (message != null) throw new AbortException(message);
+            throw error;
+        } finally {
+            listener.getLogger()
+                    .printf("[Awarely] Step elapsed: %.1fs%n", (System.nanoTime() - started) / 1_000_000_000.0);
+        }
+    }
+
+    private void performScan(
+            Run<?, ?> run, FilePath workspace, EnvVars environment, Launcher launcher, TaskListener listener)
+            throws IOException, InterruptedException {
         validate();
+        listener.getLogger().println("[Awarely] Validating job permissions, agent and workspace-contained input.");
         Computer computer = workspace.toComputer();
         if (computer == null || computer.getNode() == null || computer.getNode() instanceof Jenkins)
             throw new AbortException("Awarely must run on a dedicated Linux agent, never on the Jenkins controller");
@@ -162,6 +191,10 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                 .println("Awarely Scan: " + collector + " / " + mode + "; CLI " + pins.getProperty("version")
                         + " (fixed by plugin release).");
         AgentFiles.Session session = workspace.act(new AgentFiles.Prepare(nodeRoot.getRemote(), path, collector));
+        listener.getLogger()
+                .println("[Awarely] Input validation passed; results use a private directory outside the workspace.");
+        if (detailedLogging)
+            listener.getLogger().printf("[Awarely] Selected input: %s; label: %s%n", path, applicationLabel);
         FilePath work = new FilePath(workspace.getChannel(), session.work);
         String artifactPrefix = "awarely/" + UUID.randomUUID();
         try {
@@ -186,7 +219,11 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                 return;
             }
             String sourceKey = "local";
-            String binary = work.act(new PinnedTools.Prepare(pins, session.home, config.isAllowToolDownloads()));
+            listener.getLogger()
+                    .println(
+                            "[Awarely] Preparing the pinned CLI; cached and downloaded tools must pass digest verification.");
+            String binary = work.act(new PinnedTools.Prepare(
+                    pins, session.home, config.isAllowToolDownloads(), listener, detailedLogging));
             FilePath inventory = work.child("inventory.cdx.json");
             int code;
             if (collector.equals("existing")) {
@@ -202,14 +239,20 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                         work,
                         session.home,
                         binary,
-                        collectionArguments(session.input, inventory.getRemote(), config.isAllowToolDownloads()),
+                        diagnosticArguments(collectionArguments(
+                                session.input, inventory.getRemote(), config.isAllowToolDownloads())),
                         null,
-                        listener);
+                        listener,
+                        detailedLogging);
                 if (code != 0 && code != 3) throw new AbortException(collectionError(code));
             }
             byte[] inventoryBytes = inventory.act(new AgentFiles.Read());
             ScanResult result =
                     ScanResult.local(applicationLabel, collector, "local", artifactPrefix, inventoryBytes, code == 3);
+            listener.getLogger()
+                    .printf(
+                            "[Awarely] Inventory collected: %d components; coverage: %s for selected inputs.%n",
+                            result.getComponents(), result.getCoverage());
             Map<String, String> artifacts = new LinkedHashMap<>();
             artifacts.put(artifactPrefix + "/inventory.cdx.json", "inventory.cdx.json");
             // Preserve the collected inventory even when authentication or assessment subsequently fails.
@@ -241,9 +284,26 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                         // retry.
                         args.addAll(List.of("--idempotency-key", "jenkins-" + UUID.randomUUID()));
                         try (SyncState.Lease lease = SyncState.acquire(credential.sourceKey, run)) {
-                            code = execute(launcher, work, session.home, binary, args, credential.input(), listener);
+                            code = execute(
+                                    launcher,
+                                    work,
+                                    session.home,
+                                    binary,
+                                    diagnosticArguments(args),
+                                    credential.input(),
+                                    listener,
+                                    detailedLogging);
                         }
-                    } else code = execute(launcher, work, session.home, binary, args, credential.input(), listener);
+                    } else
+                        code = execute(
+                                launcher,
+                                work,
+                                session.home,
+                                binary,
+                                diagnosticArguments(args),
+                                credential.input(),
+                                listener,
+                                detailedLogging);
                 }
                 if (code != 0) throw new AbortException(remoteError(code));
                 byte[] report = work.child(mode + "-result.json").act(new AgentFiles.Read());
@@ -288,6 +348,25 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                                 "Awarely completed: %d components; %s. No vulnerability assessment was performed.%n",
                                 result.getComponents(),
                                 mode.equals("sync") ? "source synchronized" : "local inventory archived");
+            listener.getLogger()
+                    .println("[Awarely] Reports: " + run.getUrl() + "awarely-scan/; JSON artifacts: " + artifactPrefix
+                            + "/");
+            if (mode.equals("check")) {
+                listener.getLogger()
+                        .printf(
+                                "[Awarely] Coverage: %s for selected inputs; version-confirmed component matches: %d; unevaluated: %d.%n",
+                                result.getCoverage(), result.getVersionMatches(), result.getUnevaluated());
+                listener.getLogger()
+                        .printf(
+                                "[Awarely] Policy: severity=%s (version-confirmed only); incomplete coverage=%s; triggered result=%s.%n",
+                                severityThreshold, failOnIncomplete ? "enforce" : "report only", getPolicyResult());
+                listener.getLogger()
+                        .println("[Awarely] No matches is not an all-clear. Review coverage and the complete report.");
+            }
+            if (!result.isGateExceeded() && !(failOnIncomplete && result.isIncomplete()))
+                listener.getLogger()
+                        .println(
+                                "[Awarely] No configured policy was triggered; any earlier build result is preserved.");
             applyPolicy(run, result, failOnIncomplete, getPolicyResult(), listener);
         } finally {
             try {
@@ -388,6 +467,19 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             InputStream credentials,
             TaskListener listener)
             throws IOException, InterruptedException {
+        return execute(launcher, work, home, binary, args, credentials, listener, false);
+    }
+
+    static int execute(
+            Launcher launcher,
+            FilePath work,
+            String home,
+            String binary,
+            List<String> args,
+            InputStream credentials,
+            TaskListener listener,
+            boolean detailed)
+            throws IOException, InterruptedException {
         List<String> command = new ArrayList<>(List.of(
                 "/usr/bin/env",
                 "-i",
@@ -399,7 +491,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
         command.addAll(args);
         // The fixed executable handles structured input. No shell interprets paths or labels. Child output can contain
         // untrusted data and is not logged.
-        try (SafeDiagnostics diagnostics = new SafeDiagnostics()) {
+        try (SafeDiagnostics diagnostics = new SafeDiagnostics(listener, detailed)) {
             Launcher.ProcStarter starter = launcher.launch()
                     // Launcher expands dollar macros even without a shell. Escape them once so paths/labels remain
                     // literal.
@@ -423,10 +515,16 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                 }
                 throw e;
             }
-            if (status != 0 && diagnostics.message() != null)
-                listener.getLogger().println(diagnostics.message());
+            if (status != 0 && diagnostics.message() != null) throw new AbortException(diagnostics.message());
             return status;
         }
+    }
+
+    private List<String> diagnosticArguments(List<String> arguments) {
+        List<String> result = new ArrayList<>(arguments);
+        result.addAll(List.of("--log-format", "events"));
+        if (detailedLogging) result.add("--verbose");
+        return result;
     }
 
     private static String collectionError(int code) {
