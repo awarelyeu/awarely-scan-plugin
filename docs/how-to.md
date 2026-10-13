@@ -2,13 +2,13 @@
 
 Plugin source, documentation and current releases live in [awarely-scan-plugin](https://github.com/awarelyeu/awarely-scan-plugin). Jenkins Update Center publication is pending hosting approval.
 
-This guide covers stable release 0.1.0, distributed on GitHub. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
+This guide covers stable release 0.2.0, distributed on GitHub. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
 
 ## 1. Prepare Jenkins once
 
 You need Jenkins 2.580.1 or newer, a supported Jenkins Java runtime (JDK 21 for this plugin's tested baseline), and a Linux amd64 or arm64 agent running as a regular user. Keep the controller's executors at zero. Application builds may require Node.js/npm, Python or Maven/Java; the scanner itself does not require these runtimes for reading existing files.
 
-Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
+Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
 
 Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
 
@@ -192,3 +192,25 @@ The input path is relative to the workspace. Keep secrets out of labels and path
 If you see **INSUFFICIENT_SCOPE**, the credential does not permit the selected action: use a Sync credential for synchronization. **INVALID_CREDENTIAL** can mean invalid, expired or revoked: replace the Jenkins Secret file. **INVENTORY_CONFLICT** means another writer changed the source; inspect its current state first. If a sync times out or its receipt cannot be saved, it may already have committed. Do not blindly rerun it.
 
 Expected invalid-inventory, workspace traversal and external-symlink errors stop the step with recovery guidance instead of a Java stack trace. Unexpected internal failures still need administrator investigation. Coverage and severity policies remain unchanged.
+
+## NuGet/.NET libraries and Go modules
+
+1. Choose **NuGet / Go and other application ecosystems (Syft)**, or use `collector: 'other'` in Pipeline.
+2. Restore/build the application in a separate earlier step. For .NET, retain `packages.lock.json`, `project.assets.json` or published `.deps.json`. For Go, retain `go.mod`/`go.sum` or a compiled binary with module build information. Select that directory inside the workspace.
+3. Choose **Check** and your approved Monitor Secret file credential. Start with **Validate configuration only**, then disable it for the actual check.
+4. Review **Awarely Scan** and the JSON artifacts. Version-confirmed findings use the existing severity policy; unsupported versions/ranges remain visible in coverage and trigger `failOnIncomplete` when enabled.
+
+```groovy
+stage('Check dependency inventory') {
+    awarelyScan collector: 'other', mode: 'check',
+        path: 'app', applicationLabel: 'My .NET or Go application',
+        credentialsId: 'monitor-check', severityThreshold: 'HIGH',
+        policyResult: 'FAILURE', failOnIncomplete: true
+}
+```
+
+Replace `app` and `monitor-check` with your workspace directory and Jenkins credential ID. The administrator must approve this exact job and trusted agent before Monitor requests. The scanner does not restore packages, execute builds or install SDKs.
+
+Monitor requires an advisory for the exact ecosystem and package. NuGet IDs are case-insensitive; Go paths preserve case and major-version suffixes such as `/v2`. NuGet numeric revisions/prereleases and Go SemVer/pseudo-versions are compared explicitly. Unsupported advisory syntax produces product-level findings and `ADVISORY_RANGE_NOT_EVALUATED`, never a version-confirmed hit. Go dirty/development builds remain unevaluated. A compiled main module without a release version is retained as unknown, making that inventory partial; Check is still available, while Sync is refused. This does not evaluate the Go standard library/toolchain, infer .NET runtime vulnerability from a NuGet name, or analyze function reachability. Composer, RubyGems and Cargo remain inventory/sync only.
+
+After dependency remediation, restore/build again and rerun the job. Check the new versions and coverage before interpreting fewer matches. The application advisory reporting window still applies.

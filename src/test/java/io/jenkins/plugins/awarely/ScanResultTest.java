@@ -57,6 +57,29 @@ class ScanResultTest {
     }
 
     @Test
+    void nugetAndGoPoliciesRetainVersionPrecisionAndIncompleteCoverage() throws Exception {
+        for (String ecosystem : new String[] {"nuget", "go"}) {
+            String confirmed = report("version", "HIGH", "complete", "[]").replace("\"npm\"", "\"" + ecosystem + "\"");
+            var result = ScanResult.check(
+                    "demo", "other", "awarely/test", confirmed.getBytes(StandardCharsets.UTF_8), "HIGH");
+            assertTrue(result.isGateExceeded());
+            assertFalse(result.isIncomplete());
+            for (String reason : new String[] {
+                "ADVISORY_RANGE_NOT_EVALUATED", "VERSION_SYNTAX_NOT_EVALUATED", "PACKAGE_IDENTITY_NOT_EVALUATED"
+            }) {
+                String unknown = report(
+                                "product", "HIGH", "complete", "[{\"componentIndex\":0,\"reason\":\"" + reason + "\"}]")
+                        .replace("\"npm\"", "\"" + ecosystem + "\"");
+                var gap = ScanResult.check(
+                        "demo", "other", "awarely/test", unknown.getBytes(StandardCharsets.UTF_8), "HIGH");
+                assertFalse(gap.isGateExceeded());
+                assertTrue(gap.isIncomplete());
+                assertEquals(1, gap.getUnevaluated());
+            }
+        }
+    }
+
+    @Test
     void parserBoundsAndMissingCoverageFailClosed() throws Exception {
         assertThrows(IOException.class, () -> BoundedJson.read(new byte[BoundedJson.LIMIT + 1]));
         assertThrows(
