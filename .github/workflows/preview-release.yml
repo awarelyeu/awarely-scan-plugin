@@ -1,8 +1,9 @@
-# Pre-hosting GitHub previews only. Official Jenkins Maven/CD stays in cd.yml.
-name: Plugin preview release
+# Pre-hosting GitHub releases. Keep this path as the provenance identity.
+# Official Jenkins Maven/CD stays in cd.yml.
+name: Plugin release
 on:
   push:
-    tags: ['v*-alpha.*']
+    tags: ['v*']
 permissions:
   contents: read
 concurrency:
@@ -28,12 +29,14 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Require a reviewed main-branch preview
+      - name: Require a verified reviewed release ref
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           python3 scripts/package-preview.py --version-only "$RELEASE_TAG"
+          python3 scripts/verify-release-ref.py "$GITHUB_REPOSITORY" "$RELEASE_TAG" "$(git rev-parse HEAD)"
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -53,17 +56,19 @@ jobs:
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: |
-            dist/preview/*.hpi
-            dist/preview/*.json
-            dist/preview/SHA256SUMS
-      - name: Publish a new GitHub preview
+            dist/release/*.hpi
+            dist/release/*.json
+            dist/release/SHA256SUMS
+      - name: Publish a new GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
           BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
         run: |
           test -s "$BUNDLE_PATH"
-          for artifact in dist/preview/*.hpi dist/preview/*.json dist/preview/SHA256SUMS; do
+          for artifact in dist/release/*.hpi dist/release/*.json dist/release/SHA256SUMS; do
             cp "$BUNDLE_PATH" "$artifact.sigstore.jsonl"
           done
-          gh release create "$RELEASE_TAG" dist/preview/* --verify-tag --prerelease --title "Awarely Scan for Jenkins $RELEASE_TAG" --notes-file docs/release-notes.md
+          FLAGS=(--latest)
+          if [[ "$RELEASE_TAG" == *-alpha.* ]]; then FLAGS=(--prerelease); fi
+          gh release create "$RELEASE_TAG" dist/release/* --verify-tag "${FLAGS[@]}" --title "Awarely Scan for Jenkins $RELEASE_TAG" --notes-file docs/release-notes.md

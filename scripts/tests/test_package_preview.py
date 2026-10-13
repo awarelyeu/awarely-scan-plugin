@@ -58,10 +58,22 @@ class PreviewPackagingTest(unittest.TestCase):
             preview.package(self.root, self.tag)
         self.assertEqual(before, {p.name: p.read_bytes() for p in dest.iterdir()})
 
-    def test_only_exact_alpha_tags(self):
-        for tag in ['v0.1.0', 'v0.1.0-alpha.0', 'v0.1.0-alpha.2/../x', 'v0.1.0-alpha.2\n', '-DskipTests']:
+    def test_exact_stable_and_alpha_tags(self):
+        for tag in ['v0.1.0', 'v1.2.3', 'v0.1.1-alpha.1']:
+            self.assertEqual(preview.release_version(tag), tag[1:])
+        for tag in ['v00.1.0', 'v0.1.0-beta.1', 'v0.1.0-alpha.0', 'v0.1.0-alpha.2/../x', 'v0.1.0-alpha.2\n', '-DskipTests']:
             with self.subTest(tag=tag), self.assertRaises(ValueError):
-                preview.preview_version(tag)
+                preview.release_version(tag)
+
+    def test_stable_artifact_identity(self):
+        self.tag = 'v0.1.0'
+        self.version = '0.1.0'
+        self.write_hpi()
+        self.bom['metadata']['component']['version'] = self.version
+        self.write_bom()
+        dest = preview.package(self.root, self.tag)
+        self.assertTrue((dest / 'awarely-scan-jenkins-0.1.0.hpi').is_file())
+        self.assertTrue((dest / 'awarely-scan-jenkins-0.1.0.cdx.json').is_file())
 
     def test_snapshot_hpi_rejected(self):
         self.write_hpi(version='999999-SNAPSHOT')

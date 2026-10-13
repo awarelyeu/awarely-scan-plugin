@@ -1,6 +1,6 @@
 # Awarely Scan for Jenkins
 
-**Preview: 0.1.0-alpha.5. Test on a staging controller before production use.**
+**Stable release: 0.1.0. Available as a verified HPI on GitHub.**
 
 [Download and verify the HPI](docs/releases.md). Pins: CLI v0.11.0 and managed Syft 1.54.1.
 
@@ -13,7 +13,7 @@ This is the dedicated plugin repository. The [Awarely CLI](https://github.com/aw
 [![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
 [![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
 
-Download the current **0.1.0-alpha.5** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.5). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
+Download the current stable **0.1.0** release from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
 
 ## Supported workflows
 
@@ -49,4 +49,4 @@ mvn -B -ntp verify
 
 The output is `target/awarely-scan.hpi`. Development tool manifests deliberately fail closed until release archive and executable digests have been authenticated. Do not replace pins with arbitrary downloads or bypass verification.
 
-Future Jenkins releases use the Jenkins Incrementals/CD version scheme. A local development build is a snapshot, not a replacement for the published preview. See [contributing](CONTRIBUTING.md) and [release verification](docs/releases.md).
+Future Jenkins releases use the Jenkins Incrementals/CD version scheme. A local development build is a snapshot, not a replacement for the published release. See [contributing](CONTRIBUTING.md) and [release verification](docs/releases.md).

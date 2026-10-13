@@ -1,13 +1,23 @@
-# 0.1.0-alpha.5 — Clear console progress and safe diagnostics
+# Awarely Scan for Jenkins 0.1.0
 
-All collectors, Pipeline and Freestyle steps explain progress, coverage, policy, report locations and elapsed time. Optional `detailedLogging` adds bounded cache verification and operational details. CLI v0.11.0 provides payload-free diagnostic codes for actionable API errors. Expected malformed-inventory and workspace-path failures produce concise build errors. Raw child output, API bodies and credentials are never forwarded. Scanner behavior, permissions, policy semantics and managed Syft 1.54.1 are unchanged.
+First stable GitHub release, promoting the runtime tested in 0.1.0-alpha.5. CLI **v0.11.0** and managed Syft **1.54.1** remain pinned; collector behavior, permissions, policy and synchronization semantics are unchanged.
 
-# Awarely Scan for Jenkins 0.1.0-alpha.4
+## Available workflows
 
-The build sidebar now shows Awarely Scan with a bundled shield-and-A icon. The previous icon referenced an unavailable Jenkins symbol and displayed a fallback X. The new SVG follows the Jenkins theme, works offline and adds no plugin dependency.
+- Pipeline and Freestyle inventory for npm, Python, Java, Linux agent packages, other Syft ecosystems, and existing/imported SBOMs.
+- Local CycloneDX export, explicit Monitor CVE checks, or synchronization of one configured source.
+- Configuration preflight, readable console progress, optional bounded detailed logging, complete JSON artifacts, and comparison with compatible previous builds.
+- Version-confirmed severity policies with report-only, UNSTABLE or FAILURE outcomes; incomplete assessment coverage remains explicit.
+- Administrator job/node/origin approvals, private tool/results directories, verified pinned downloads, and one trusted writer job per synchronized source.
 
-This is a presentation-only correction to alpha.3. Inventory collection, API checks, synchronization, preflight, build policies and build comparison behavior are unchanged. The pinned CLI remains **v0.10.1**, with managed Syft **1.54.1**. English and Romanian guides identify the sidebar icon and link to the updated preview.
+## Validation and installation
 
-Requires Jenkins 2.580.1 or newer, JDK 21 on the tested baseline, and isolated non-root Linux amd64/arm64 agents. This is a GitHub preview HPI, not a Jenkins Update Center release. Verify its public provenance and checksum and test on staging before production use.
+Manual acceptance covered Pipeline/Freestyle, Linux amd64/arm64 agents, baseline and updated applications, policy outcomes and deployment gating, synchronization, and denied job/scope/path/partial-inventory/competing-writer cases. Remote acceptance used an isolated staging tenant and clearly identified synthetic CVE fixtures. These tests do not imply that a successful check proves an application secure.
 
-[English walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md) · [Release verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)
+Release CI rebuilds and tests the plugin on Linux amd64 and arm64, validates artifact versions and CLI pins, and publishes provenance attestations for the HPI, dependency SBOM and checksums. Release refs must target a GitHub-verified commit; unsigned annotated tags are rejected. Published versions are never replaced.
+
+Requires **Jenkins 2.580.1+**, JDK 21 on the tested baseline, and isolated non-root Linux amd64/arm64 agents. Verify the HPI, back up your controller and validate your setup on staging before upgrading. Existing alpha installations keep the same `awarely-scan` plugin ID.
+
+**Distribution:** this stable release is available as a manually installed HPI on GitHub. Jenkins project hosting and Update Center publication are pending; this release does not claim Jenkins project approval.
+
+[Download and verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md) · [English walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md)
