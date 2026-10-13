@@ -1,8 +1,8 @@
 # Awarely Scan for Jenkins
 
-**Preview: 0.1.0-alpha.4. Test on a staging controller before production use.**
+**Preview: 0.1.0-alpha.5. Test on a staging controller before production use.**
 
-[Download and verify the HPI](docs/releases.md). Pins: CLI v0.10.1 and managed Syft 1.54.1.
+[Download and verify the HPI](docs/releases.md). Pins: CLI v0.11.0 and managed Syft 1.54.1.
 
 Generate an SBOM during a build, check it with Awarely Monitor, and explicitly synchronize one inventory source when appropriate. The plugin uses the same CLI and managed Syft as the terminal workflow. It does not build your application or install its dependencies.
 
@@ -13,7 +13,7 @@ This is the dedicated plugin repository. The [Awarely CLI](https://github.com/aw
 [![Build](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/build.yml)
 [![Jenkins Security Scan](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/awarelyeu/awarely-scan-plugin/actions/workflows/jenkins-security-scan.yml)
 
-Download the current **0.1.0-alpha.4** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.4). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
+Download the current **0.1.0-alpha.5** preview from [this repository's releases](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.1.0-alpha.5). The historical **0.1.0-alpha.1** preview and its original signatures remain in the scanner repository; see [release verification](docs/releases.md).
 
 ## Supported workflows
 

@@ -18,6 +18,7 @@ class BuilderTest {
         step.setMode("local");
         step.setPolicyResult("FAILURE");
         step.setPreflightOnly(true);
+        step.setDetailedLogging(true);
         step.setPath("target/my app");
         step.setApplicationLabel("Demo Java");
         p.getBuildersList().add(step);

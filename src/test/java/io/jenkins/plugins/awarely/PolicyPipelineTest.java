@@ -35,6 +35,20 @@ class PolicyPipelineTest {
         }
     }
 
+    @Test
+    void traversalFailsBeforeAgentAccessWithoutBindingStackTrace(JenkinsRule j) throws Exception {
+        var job = j.createProject(WorkflowJob.class, "traversal");
+        job.setDefinition(new CpsFlowDefinition(
+                "node { awarelyScan collector: 'npm', path: '../outside'; echo 'UNSAFE_REACHED' }", true));
+        var run = j.assertBuildStatus(Result.FAILURE, job.scheduleBuild2(0));
+        j.assertLogContains("Parent traversal", run);
+        String log = JenkinsRule.getLog(run);
+        assertFalse(log.contains("UNSAFE_REACHED"));
+        assertFalse(log.contains("InvocationTargetException"));
+        assertFalse(log.contains("java.lang.IllegalArgumentException"));
+        assertFalse(log.contains("Validating job permissions"));
+    }
+
     public static final class PolicyFixture extends Builder implements SimpleBuildStep {
         private final String policy;
 
