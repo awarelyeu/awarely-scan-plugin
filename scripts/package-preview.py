@@ -1,4 +1,4 @@
-"""Package a versioned GitHub preview without changing Jenkins CD versioning."""
+"""Package a versioned GitHub release without changing Jenkins CD versioning."""
 import argparse
 import hashlib
 import io
@@ -12,14 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 PINS = 'io/jenkins/plugins/awarely/tools.properties'
 
 
-def preview_version(tag):
-    if not re.fullmatch(r'v\d+\.\d+\.\d+-alpha\.[1-9]\d*', tag):
-        raise ValueError('Expected an exact preview tag such as v0.1.0-alpha.2')
+def release_version(tag):
+    number = r'(?:0|[1-9]\d*)'
+    if not re.fullmatch(rf'v{number}\.{number}\.{number}(?:-alpha\.[1-9]\d*)?', tag):
+        raise ValueError('Expected an exact release tag such as v0.1.0 or v0.1.1-alpha.1')
     return tag[1:]
 
 
 def package(root, tag):
-    version = preview_version(tag)
+    version = release_version(tag)
     pins_bytes = (root / 'src/main/resources' / PINS).read_bytes()
     pins = dict(line.split('=', 1) for line in pins_bytes.decode().splitlines()
                 if line and not line.startswith('#'))
@@ -34,9 +35,9 @@ def package(root, tag):
         text = re.sub(r'\r?\n ', '', archive.read('META-INF/MANIFEST.MF').decode())
         manifest = dict(line.split(': ', 1) for line in text.splitlines() if ': ' in line)
         if manifest.get('Plugin-Version') != version or manifest.get('Short-Name') != 'awarely-scan':
-            raise ValueError('HPI identity/version does not match the preview tag')
+            raise ValueError('HPI identity/version does not match the release tag')
         if manifest.get('Plugin-ScmTag') != tag:
-            raise ValueError('HPI source tag does not match the preview tag')
+            raise ValueError('HPI source tag does not match the release tag')
         with zipfile.ZipFile(io.BytesIO(archive.read('WEB-INF/lib/awarely-scan.jar'))) as jar:
             if jar.read(PINS) != pins_bytes:
                 raise ValueError('HPI tool pins differ from the reviewed manifest')
@@ -48,7 +49,7 @@ def package(root, tag):
             or component.get('name') != 'awarely-scan'
             or component.get('version') != version):
         raise ValueError('Dependency inventory identity/version does not match the HPI')
-    dest = root / 'dist/preview'
+    dest = root / 'dist/release'
     dest.mkdir(parents=True, exist_ok=False)
     shutil.copyfile(hpi, dest / f'awarely-scan-jenkins-{version}.hpi')
     shutil.copyfile(bom, dest / f'awarely-scan-jenkins-{version}.cdx.json')
@@ -65,8 +66,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     try:
         if args.version_only:
-            print(preview_version(args.tag))
+            print(release_version(args.tag))
         else:
-            print('Packaged preview: ' + str(package(ROOT, args.tag)))
+            print('Packaged release: ' + str(package(ROOT, args.tag)))
     except (ValueError, OSError, KeyError, zipfile.BadZipFile) as error:
         raise SystemExit(str(error))

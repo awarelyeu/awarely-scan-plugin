@@ -1,6 +1,6 @@
 # Jenkins project hosting readiness
 
-Status: standalone repository prepared; hosting request not submitted. Jenkins maintainers decide acceptance. The existing preview is not an Update Center release.
+Status: standalone repository prepared; hosting request not submitted. Jenkins maintainers decide acceptance. Stable GitHub release 0.1.0 is available; it is not an Update Center release.
 
 ## Prepared in this repository
 
@@ -16,7 +16,7 @@ Status: standalone repository prepared; hosting request not submitted. Jenkins m
 
 ## Before sending the hosting request
 
-1. Finish the owner's final manual acceptance of the [current verified preview](releases.md). GitHub previews are built and attested in this repository; the original alpha.1 remains unchanged in the scanner repository.
+1. Review the completed manual acceptance and automated checks for the [current verified release](releases.md). Release 0.1.0 promotes the tested alpha.5 runtime without collector, policy or permission changes. GitHub releases are built and attested in this repository; historical previews remain unchanged.
 2. Create a Jenkins community account at https://accounts.jenkins.io, then sign in to https://issues.jenkins.io and https://repo.jenkins-ci.org as required by the hosting form. The owner confirmed that this account does not yet exist. Replace the clearly marked account field in the request draft; GitHub and Jenkins usernames are independent.
 3. Review the default-branch Jenkins Security Scan alerts, build results and metadata. Submit the prepared draft using the [official hosting form](https://github.com/jenkins-infra/repository-permissions-updater/issues/new?template=1-hosting-request.yml) only when authorized. Request official GitHub-based releases; do not provide personal Maven tokens in an issue.
 
