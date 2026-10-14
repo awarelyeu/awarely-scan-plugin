@@ -15,6 +15,11 @@ import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 /** A short-lived stdin binding. Never stored in the workspace, process arguments or environment. */
 final class MonitorCredential implements AutoCloseable {
     private final byte[] data;
+
+    // Non-secret SHA-256 identity of canonical API origin, application ID and source ID only.
+    // The token is excluded. Preserve this digest across token rotation and releases because
+    // persisted sync writer bindings and build comparisons use it as their source identity.
+    @SuppressWarnings("lgtm[jenkins/plaintext-storage]")
     final String sourceKey;
 
     private MonitorCredential(byte[] data, String sourceKey) {

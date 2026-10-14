@@ -25,6 +25,7 @@ import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /** Freestyle build step and Pipeline awarelyScan step, using the same verified CLI as interactive users. */
 public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep {
@@ -610,6 +611,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             return items;
         }
 
+        @RequirePOST
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item) {
             if (item == null || !item.hasPermission(Item.CONFIGURE)) return new ListBoxModel();
             return new StandardListBoxModel()
