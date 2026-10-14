@@ -1,6 +1,6 @@
 # Jenkins project hosting readiness
 
-Status: standalone repository prepared; hosting request not submitted. Jenkins maintainers decide acceptance. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
+Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14; awaiting Jenkins hosting-team review. Jenkins maintainers decide acceptance. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
 
 ## Prepared in this repository
 
@@ -12,13 +12,13 @@ Status: standalone repository prepared; hosting request not submitted. Jenkins m
 - GitHub build checks for Linux amd64/arm64, secret scanning and Jenkins Security Scan (CodeQL).
 - Incrementals extension/configuration and changelist-based POM versioning.
 - Official Jenkins CD reusable workflow and Release Drafter configuration, with controlled activation below.
-- [Hosting request draft](hosting-request.md) with repository, identity, purpose and maintainer fields.
+- [Submitted hosting request](hosting-request.md) with repository, identity, purpose and maintainer fields.
 
-## Before sending the hosting request
+## Submission record
 
-1. Review the completed manual acceptance and automated checks for the [current verified release](releases.md). Release 0.2.0 adds NuGet and Go checks through CLI v0.12.0 and the Monitor service, retaining job approval, credentials and policy boundaries. GitHub releases are built and attested in this repository; historical previews remain unchanged.
-2. Create a Jenkins community account at https://accounts.jenkins.io, then sign in to https://issues.jenkins.io and https://repo.jenkins-ci.org as required by the hosting form. The owner confirmed that this account does not yet exist. Replace the clearly marked account field in the request draft; GitHub and Jenkins usernames are independent.
-3. Review the default-branch Jenkins Security Scan alerts, build results and metadata. Submit the prepared draft using the [official hosting form](https://github.com/jenkins-infra/repository-permissions-updater/issues/new?template=1-hosting-request.yml) only when authorized. Request official GitHub-based releases; do not provide personal Maven tokens in an issue.
+1. The [current verified release](releases.md) is 0.2.0. It adds NuGet and Go checks through CLI v0.12.0 and the Monitor service, retaining job approval, credentials and policy boundaries. Manual acceptance and automated checks are recorded in the release documentation. GitHub releases are built and attested in this repository; historical previews remain unchanged.
+2. The owner confirmed the required initial Jira and Artifactory sign-ins for Jenkins community username `awarely_ro`, now recorded in the request. The GitHub maintainer is `awarelyeu`; GitHub and Jenkins usernames are independent.
+3. Default-branch Build and Jenkins Security Scan passed for `a710386ffe72055d7e428819e8cdb811d4f27643`; the GitHub CodeQL alerts query reported no open alerts before submission. The request follows the [official hosting form](https://github.com/jenkins-infra/repository-permissions-updater/issues/new?template=1-hosting-request.yml), requests official GitHub-based releases, and asks the hosting team to coordinate repository transfer to preserve existing releases, assets and review history. Do not provide personal Maven tokens in the issue.
 
 ## Jenkins-controlled handoff and release activation
 
