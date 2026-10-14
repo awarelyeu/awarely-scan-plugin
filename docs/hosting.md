@@ -1,6 +1,6 @@
 # Jenkins project hosting readiness
 
-Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14; awaiting Jenkins hosting-team review. Jenkins maintainers decide acceptance. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
+Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14. The first automated review requested metadata/build-policy corrections and confirmation in Jenkins's hourly Jira-user report. Repository corrections are prepared below; hosting approval is still pending. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
 
 ## Prepared in this repository
 
@@ -11,7 +11,7 @@ Status: [hosting request #5383](https://github.com/jenkins-infra/repository-perm
 - Root `Jenkinsfile` using `buildPlugin()` with Java 21/Linux.
 - GitHub build checks for Linux amd64/arm64, secret scanning and Jenkins Security Scan (CodeQL).
 - Incrementals extension/configuration and changelist-based POM versioning.
-- Official Jenkins CD reusable workflow and Release Drafter configuration, with controlled activation below.
+- Official Jenkins CD reusable workflow, with controlled activation below. Release notes are handled by that workflow; the redundant local Release Drafter configuration has been removed as requested by the hosting checker.
 - [Submitted hosting request](hosting-request.md) with repository, identity, purpose and maintainer fields.
 
 ## Submission record
@@ -21,6 +21,10 @@ Status: [hosting request #5383](https://github.com/jenkins-infra/repository-perm
 3. Default-branch Build and Jenkins Security Scan passed for `a710386ffe72055d7e428819e8cdb811d4f27643`; the GitHub CodeQL alerts query reported no open alerts before submission. The request follows the [official hosting form](https://github.com/jenkins-infra/repository-permissions-updater/issues/new?template=1-hosting-request.yml), requests official GitHub-based releases, and asks the hosting team to coordinate repository transfer to preserve existing releases, assets and review history. Do not provide personal Maven tokens in the issue.
 
 ## Jenkins-controlled handoff and release activation
+
+The first hosting-checker corrections configure `jenkins.baseline` for both core and the BOM, update the BOM to `7169.vb_32a_cfd93fa_6`, enable strict bundled-artifact and obsolete/deprecated dependency checks, and inherit Java configuration from the plugin parent. The SCM developer connection uses the Git SSH syntax supported by Jenkins's plugin compatibility tester. The minimum core remains **2.580.1**: on 2026-10-14 this is the first release of the active LTS line, while 2.580.3 is not published. Jenkins's baseline guidance recommends `.1` for the active LTS line and `.3` for historical lines. No controller upgrade is required for this metadata correction.
+
+The POM project URL and CODEOWNERS team now identify the requested Jenkins repository/team. They are prepared for hosting and do not imply the repository or team already exists. Maintainer release permissions come from the hosting request rather than a POM `developers` block. The owner confirmed Jira login; if the next check still reports the account missing after the hourly refresh, verify that Jira actually shows the signed-in `awarely_ro` account.
 
 The hosting team forks or transfers the entire repository into `jenkinsci/awarely-scan-plugin`, grants maintainers access and arranges artifact permissions. They may request changes. No repository configuration can pre-approve this step.
 
