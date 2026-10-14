@@ -1,6 +1,6 @@
 # Jenkins project hosting readiness
 
-Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14. The first automated review requested metadata/build-policy corrections and confirmation in Jenkins's hourly Jira-user report. Repository corrections are prepared below; hosting approval is still pending. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
+Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14. The automated hosting checker passed after the metadata/build-policy corrections and account synchronization. The subsequent security scan raised two findings, addressed below for re-scan; hosting approval is still pending. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
 
 ## Prepared in this repository
 
@@ -24,7 +24,14 @@ Status: [hosting request #5383](https://github.com/jenkins-infra/repository-perm
 
 The first hosting-checker corrections configure `jenkins.baseline` for both core and the BOM, update the BOM to `7169.vb_32a_cfd93fa_6`, enable strict bundled-artifact and obsolete/deprecated dependency checks, and inherit Java configuration from the plugin parent. The SCM developer connection uses the Git SSH syntax supported by Jenkins's plugin compatibility tester. The minimum core remains **2.580.1**: on 2026-10-14 this is the first release of the active LTS line, while 2.580.3 is not published. Jenkins's baseline guidance recommends `.1` for the active LTS line and `.3` for historical lines. No controller upgrade is required for this metadata correction.
 
-The POM project URL and CODEOWNERS team now identify the requested Jenkins repository/team. They are prepared for hosting and do not imply the repository or team already exists. Maintainer release permissions come from the hosting request rather than a POM `developers` block. The owner confirmed Jira login; if the next check still reports the account missing after the hourly refresh, verify that Jira actually shows the signed-in `awarely_ro` account.
+The POM project URL and CODEOWNERS team now identify the requested Jenkins repository/team. They are prepared for hosting and do not imply the repository or team already exists. Maintainer release permissions come from the hosting request rather than a POM `developers` block. Both public account reports now include `awarely_ro`; the hosting checker confirmed the request was in order.
+
+The [hosting security scan](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383#issuecomment-6172705261) raised two findings:
+
+- The credential dropdown endpoint now requires POST, retaining its item-level `Item.CONFIGURE` authorization check. Jenkins's existing credentials selector already sends POST requests with a CSRF crumb. `AuthorityTest` exercises the HTTP endpoint and the authenticated configuration form, including rejection of GET and POST requests without a valid crumb and refusal to enumerate credentials for read-only users.
+- `MonitorCredential.sourceKey` is a non-secret SHA-256 identity derived only from canonical API origin, application ID and source ID. It does not contain or hash the token. A field-specific `jenkins/plaintext-storage` suppression documents this false positive. `MonitorCredentialTest` checks its known digest, token rotation, canonical origin handling, persisted writer protection and token-free persisted metadata. The digest algorithm is unchanged so existing source bindings remain effective.
+
+These changes are in the source tree for the next release; they do not replace the already published 0.2.0 HPI. Request a new Jenkins security scan after the reviewed changes are merged, and await the hosting team's decision.
 
 The hosting team forks or transfers the entire repository into `jenkinsci/awarely-scan-plugin`, grants maintainers access and arranges artifact permissions. They may request changes. No repository configuration can pre-approve this step.
 
