@@ -1,6 +1,6 @@
 # Jenkins project hosting readiness
 
-Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14. The automated hosting checker passed after the metadata/build-policy corrections and account synchronization. The subsequent security scan raised two findings, addressed below for re-scan; hosting approval is still pending. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
+Status: [hosting request #5383](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383) submitted on 2026-10-14. The automated hosting checker passed after the metadata/build-policy corrections and account synchronization. The subsequent security findings were addressed and the official security scan passed on 2026-10-15. Maintainer code review is in progress; hosting approval is still pending. Stable GitHub release 0.2.0 is available; it is not an Update Center release.
 
 ## Prepared in this repository
 
@@ -31,7 +31,7 @@ The [hosting security scan](https://github.com/jenkins-infra/repository-permissi
 - The credential dropdown endpoint now requires POST, retaining its item-level `Item.CONFIGURE` authorization check. Jenkins's existing credentials selector already sends POST requests with a CSRF crumb. `AuthorityTest` exercises the HTTP endpoint and the authenticated configuration form, including rejection of GET and POST requests without a valid crumb and refusal to enumerate credentials for read-only users.
 - `MonitorCredential.sourceKey` is a non-secret SHA-256 identity derived only from canonical API origin, application ID and source ID. It does not contain or hash the token. A field-specific `jenkins/plaintext-storage` suppression documents this false positive. `MonitorCredentialTest` checks its known digest, token rotation, canonical origin handling, persisted writer protection and token-free persisted metadata. The digest algorithm is unchanged so existing source bindings remain effective.
 
-These changes are in the source tree for the next release; they do not replace the already published 0.2.0 HPI. Request a new Jenkins security scan after the reviewed changes are merged, and await the hosting team's decision.
+These changes are in the source tree for the next release; they do not replace the already published 0.2.0 HPI. The [official re-scan passed](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383#issuecomment-6203413705). Await the hosting team's decision.
 
 The hosting team forks or transfers the entire repository into `jenkinsci/awarely-scan-plugin`, grants maintainers access and arranges artifact permissions. They may request changes. No repository configuration can pre-approve this step.
 
@@ -48,6 +48,19 @@ The official CD workflow is already in `.github/workflows/cd.yml`. It:
 Leave `JENKINS_CD_APPROVED` unset until Jenkins reviews this workflow and the corresponding repository-permissions-updater CD configuration, provisions credentials and enables successful `ci.jenkins.io` builds. Then run validation first; a subsequent manual release run may clear `validate_only`. Never bypass the Jenkins CI verification. The POM already uses `${changelist}` with Jenkins's standard Incrementals configuration, so no runtime implementation rewrite is needed.
 
 Jenkins-hosted releases go to the Jenkins Maven repository, from which update sites obtain plugins. After hosting, development previews should use Incrementals; the experimental update center is deprecated. The pre-hosting `preview-release.yml` is restricted to `awarelyeu/awarely-scan-plugin` and produces verified HPI downloads for manual staging tests. A GitHub alpha/beta release alone is not publication to Jenkins.
+
+## Maintainer code review follow-up (2026-10-16)
+
+Following [Markus Winter's review](https://github.com/jenkins-infra/repository-permissions-updater/issues/5383#issuecomment-6204719088):
+
+- Removed the direct Structs dependency; core supplies `@Symbol`.
+- Centralized fixed options and labels in enums and use `f:enum`. Existing String-based XML/Jenkinsfile values remain compatible through an explicit UI binding adapter; the credential selector remains a separately authorized POST endpoint.
+- Moved CLI archive download to the controller with Jenkins' proxy-aware Java HttpClient builder, bounded response subscribers, an overall deadline and explicit HTTPS redirect checks. Only the verified public archive crosses Remoting. The agent verifies archive and executable digests again. The how-to distinguishes controller CLI download from agent-side Syft/Monitor traffic.
+- Simplified the FilePath construction and made the global configuration page's ADMINISTER requirement explicit.
+- Tested the actual `awarelyScan` step across a forcibly restarted controller, paused before agent/API access. The supported SimpleBuildStep/CoreStep Pipeline bridge fails active nonresumable execution without replay or normal downstream continuation. This is not durable-process support; the user guide states the limitation and uncertain-sync recovery.
+- Retained release-authenticated tool pins, bounded no-follow/hardlink-rejecting reads, create-new private inventory copies, and ADMINISTER-only authority changes. Arbitrary tool manifests would change executable provenance; generic copy/containment helpers do not implement all the retained file checks. Added focused file and authority regressions rather than relaxing those controls.
+
+These are source changes for the next release, not a replacement of existing signed release assets.
 
 ## Official references
 

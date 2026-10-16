@@ -12,6 +12,28 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 @WithJenkins
 class BuilderTest {
     @Test
+    void enumFormKeepsLegacyPipelineAndXmlValues(JenkinsRule j) throws Exception {
+        var project = j.createFreeStyleProject();
+        var step = new AwarelyScanBuilder("npm-syft");
+        step.setMode("check");
+        step.setSeverityThreshold("HIGH");
+        step.setPolicyResult("FAILURE");
+        project.getBuildersList().add(step);
+        j.configRoundtrip(project);
+        var restored = project.getBuildersList().get(AwarelyScanBuilder.class);
+        j.assertEqualDataBoundBeans(step, restored);
+        String snippet = org.jenkinsci.plugins.workflow.cps.Snippetizer.object2Groovy(
+                new org.jenkinsci.plugins.workflow.steps.CoreStep(restored));
+        assertTrue(snippet.contains("collector: 'npm-syft'"), snippet);
+        assertTrue(snippet.contains("mode: 'check'"), snippet);
+        assertFalse(snippet.contains("Selection"), snippet);
+        project.save();
+        String xml = project.getConfigFile().asString();
+        assertTrue(xml.contains("<collector>npm-syft</collector>"), xml);
+        assertFalse(xml.contains("Selection"), xml);
+    }
+
+    @Test
     void configurationRoundtripAndControllerRefusal(JenkinsRule j) throws Exception {
         FreeStyleProject p = j.createFreeStyleProject();
         AwarelyScanBuilder step = new AwarelyScanBuilder("java");

@@ -10,13 +10,13 @@ Ai nevoie de Jenkins 2.580.1 sau mai nou, un Java compatibil cu versiunea Jenkin
 
 Descarcă HPI-ul din [release-ul pluginului](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0) și urmează [verificarea provenienței și checksum-ului](releases.md). Un plugin poate executa cod pe controller.
 
-În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
+În **Manage Jenkins → Plugins → Available plugins**, instalează sau actualizează dependențele: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Jackson 2 API** și **Commons Compress API**. Jenkins rezolvă și dependențele lor. Pentru Jenkinsfile, instalează și **Pipeline**. Verifică avertismentele de securitate din **Manage Jenkins**.
 
 Apoi deschide **Plugins → Advanced settings → Deploy Plugin**, selectează HPI-ul verificat și încarcă-l. Repornește Jenkins după terminarea build-urilor. Confirmă că **Awarely Scan** apare în **Installed plugins**, fără eroare de încărcare. HPI-ul se distribuie aici; pluginul nu este încă listat în Jenkins Update Center.
 
 În **Manage Jenkins → System → Awarely Scan**, administratorul configurează:
 
-1. **Allow verified tool downloads**, dacă agenții pot descărca CLI-ul și Syft la versiunile fixate. Această opțiune nu rulează automat orice versiune `latest`.
+1. **Allow verified tool downloads**, pentru a permite pregătirea CLI-ului și Syft la versiunile fixate. Această opțiune nu rulează automat orice versiune `latest`.
 2. Numele complete ale joburilor care pot contacta Monitor, câte unul pe linie. Include numele folderului și ramurii pentru joburile multibranch. Nu se acceptă wildcard-uri.
 3. Numele exacte ale agenților dedicați build-urilor de încredere. Separă-i de joburile și PR-urile externe.
 4. Originea HTTPS din fișierul de credențiale descărcat din propriul cont Monitor, la **Allowed Monitor API origins**. Aceasta conține protocolul, hostname-ul și eventual portul, fără cale.
@@ -24,6 +24,13 @@ Apoi deschide **Plugins → Advanced settings → Deploy Plugin**, selectează H
 6. Separat, joburile care pot inventaria sistemul Linux al agentului, la **Jobs allowed to inventory the agent host**.
 
 O scanare locală de aplicație nu necesită cont sau credențiale Monitor. Cache-ul se află în `.awarely-scan` sub directorul agentului, în afara workspace-ului, cu permisiuni doar pentru proprietar. Pentru utilizare fără descărcări, administratorul pregătește arhiva CLI fixată și cache-ul Syft verificat în avans. O arhivă absentă sau modificată oprește pasul.
+
+**Conexiunile de rețea:** pe `main` (următorul release după v0.2.0), controllerul descarcă arhiva CLI absentă folosind proxy-ul global Jenkins și lista de excepții. Configurează proxy-ul în **Manage Jenkins → Plugins → Advanced settings**. Controllerul verifică digestul fixat și trimite arhiva publică prin Jenkins Remoting; agentul o verifică din nou înainte de execuție. Credențialele proxy rămân pe controller. Arhiva deja prezentă în cache nu necesită descărcare. În v0.2.0, CLI-ul este încă descărcat direct de agent.
+
+Descărcarea Syft și cererile Monitor Check/Sync pornesc în continuare de pe agent prin CLI-ul fixat. Ele **nu** moștenesc proxy-ul controllerului Jenkins sau variabilele de mediu pentru proxy. Permite accesul HTTPS direct necesar sau pregătește cache-ul Syft pentru colectare offline. Suportul proxy pentru descărcarea CLI nu înseamnă că toate operațiile folosesc proxy-ul. Preflight nu testează conexiunile.
+
+Aceste setări necesită **Jenkins ADMINISTER**, inclusiv listele de joburi, agenți, origini și drepturi sync. Permisiunea Jenkins MANAGE singură nu poate acorda acces la credențiale, scanarea gazdei sau scrierea inventarului la distanță.
+
 
 ## 2. Adaugă credențialele pentru verificare
 
@@ -153,7 +160,7 @@ awarelyScan collector: 'java', mode: 'sync',
 
 Eticheta descrie SBOM-ul; credențiala stabilește aplicația și sursa destinație. Sync înlocuiește imediat numai acea sursă și le păstrează pe celelalte. Inventarele parțiale sau goale sunt refuzate. Pluginul serializează sincronizările sale, persistă ordinea build-urilor și refuză un build mai vechi ori alt job care încearcă să scrie aceeași sursă. Serverul verifică separat revizia și cheia de idempotency.
 
-Nu pune sync într-un `retry` automat. După timeout, restart de controller sau pierderea răspunsului, verifică sursa în Monitor înainte de repetare. CLI-ul păstrează aceeași revizie și cheie pentru propriile retry-uri de transport, limitate. Pluginul nu reia automat un proces întrerupt de restart-ul controllerului.
+Nu pune sync într-un `retry` automat. După timeout, restart de controller sau pierderea răspunsului, verifică sursa în Monitor înainte de repetare. CLI-ul păstrează aceeași revizie și cheie pentru propriile retry-uri de transport, limitate. Pluginul suportă Pipeline prin mecanismul Jenkins `SimpleBuildStep`/`CoreStep`, dar **un pas aflat în execuție nu poate fi reluat după restart**. După repornirea controllerului, pasul întrerupt eșuează; nu este repetat automat și nu raportează o verificare reușită. Pașii Pipeline următori nu continuă normal decât dacă Jenkinsfile-ul interceptează intenționat eroarea. Pluginul nu repetă pașii deja terminați și rezultatele lor salvate. Lasă scanările active să se termine înaintea mentenanței planificate. După o întrerupere, verifică dacă procesul agentului mai rulează și clarifică rezultatul oricărei sincronizări incerte înainte să pornești un build nou.
 
 ## 6a. Compară build-urile
 

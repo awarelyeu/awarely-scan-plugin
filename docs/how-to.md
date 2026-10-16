@@ -10,13 +10,13 @@ You need Jenkins 2.580.1 or newer, a supported Jenkins Java runtime (JDK 21 for 
 
 Download the HPI from the [plugin release](https://github.com/awarelyeu/awarely-scan-plugin/releases/tag/v0.2.0) and follow [provenance and checksum verification](releases.md). Installing a plugin grants controller code execution.
 
-Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Structs**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
+Under **Manage Jenkins → Plugins → Available plugins**, install or update these dependencies: **Credentials**, **Plain Credentials**, **Branch API**, **SCM API**, **Jackson 2 API** and **Commons Compress API**. Jenkins resolves their dependencies too. For Jenkinsfiles, also install **Pipeline**. Review security warnings in **Manage Jenkins**.
 
 Then open **Plugins → Advanced settings → Deploy Plugin**, select the verified HPI and upload it. Restart Jenkins when no builds are running. Confirm **Awarely Scan** appears under **Installed plugins**, without a loading error. The HPI is distributed here; this plugin is not yet listed in the Jenkins Update Center.
 
 In **Manage Jenkins → System → Awarely Scan**:
 
-1. Enable **Allow verified tool downloads** if agents may fetch the pinned CLI and Syft. This is permission to download the specific tested tools; it never selects an unreviewed latest version.
+1. Enable **Allow verified tool downloads** to permit preparation of the pinned CLI and Syft. This is permission to download the specific tested tools; it never selects an unreviewed latest version.
 2. Enter the exact full names of jobs permitted to contact Monitor, one per line. For a folder or multibranch job, include its complete Jenkins job name. Wildcards are not supported.
 3. Enter the exact agent node names trusted for remote operations. Run trusted builds on agents isolated from external pull requests and other untrusted jobs.
 4. Copy the HTTPS API origin from your downloaded Monitor credential into **Allowed Monitor API origins**. An origin contains the scheme, hostname and optional port, without a path. Obtain it from your own trusted Monitor account.
@@ -24,6 +24,13 @@ In **Manage Jenkins → System → Awarely Scan**:
 6. If you want Linux host inventory, separately approve the exact job under **Jobs allowed to inventory the agent host**.
 
 A local application scan needs no Monitor account or credential. The tool cache lives outside the job workspace, under the agent root's `.awarely-scan` directory, with owner-only permissions. To operate without downloads, an administrator must populate the pinned release archive cache and the CLI's verified Syft cache in advance. An absent or modified archive stops the step.
+
+**Network paths:** on current `main` (the next release after v0.2.0), the controller downloads a missing CLI archive using Jenkins' global proxy configuration, including its bypass list. Configure the proxy in **Manage Jenkins → Plugins → Advanced settings**. The controller verifies the pinned digest, then sends the public archive over Jenkins Remoting; the agent verifies it again before execution. Proxy credentials stay on the controller. Cached archives need no network request. In v0.2.0, CLI downloads still originate directly from the agent.
+
+Managed Syft downloads and Monitor Check/Sync requests still originate from the agent through the fixed CLI. They do **not** inherit Jenkins' controller proxy or proxy environment variables. Provide permitted direct HTTPS access for those operations, or prepopulate the documented Syft cache for offline collection. Controller proxy support for the CLI download alone does not make all operations proxy-enabled. Preflight tests neither connection.
+
+These settings require **Jenkins ADMINISTER**, including the job, agent, origin and sync allowlists. Jenkins MANAGE alone cannot grant access to credentials, host inspection or remote inventory writes.
+
 
 ## 2. Add a credential for checks
 
@@ -141,7 +148,7 @@ awarelyScan collector: 'java', mode: 'sync',
 
 The application label describes the SBOM; the credential determines the destination application and source. Sync immediately replaces that source and preserves other sources. Partial and empty snapshots are refused. The plugin serializes its sync operations, persists a conservative build-order marker and rejects older builds or a different job writing the same source. The server also enforces revision and idempotency checks. External writers remain subject to server conflicts; keep one writer per source.
 
-Do not wrap sync in a blind `retry` block. A timeout, controller restart or lost receipt can leave the commit outcome uncertain. Inspect the source in Monitor before retrying. The CLI keeps the same request revision and idempotency key for its own bounded transport retries. This plugin does not resume an interrupted process after a controller restart.
+Do not wrap sync in a blind `retry` block. A timeout, controller restart or lost receipt can leave the commit outcome uncertain. Inspect the source in Monitor before retrying. The CLI keeps the same request revision and idempotency key for its own bounded transport retries. The plugin supports Pipeline through Jenkins' `SimpleBuildStep`/`CoreStep` bridge, but an **active step is nonresumable**. A controller restart during that step makes it fail after restart; it is not automatically replayed or reported as a successful check. Later normal Pipeline steps stop unless your Jenkinsfile explicitly catches the error. Completed steps and their saved results are not rerun by this plugin. Allow active scans to finish before planned controller maintenance. Following an interruption, check for a still-running agent process and inspect any uncertain sync outcome before starting a fresh build.
 
 ## 6a. Compare builds
 

@@ -37,7 +37,7 @@ Actions are `local` (default), `check` and `sync`. Linux collection inventories 
 - Choose `policyResult: 'FAILURE'` to stop the step when severity/incomplete policy trips, or retain the compatible `UNSTABLE` default. Reports are preserved.
 - Open **Awarely Scan → Changes since the previous build** for component and observed CVE-match differences. Incompatible or incomplete evidence is explained, never presented as confirmed remediation.
 
-The [walkthrough](docs/how-to.md) includes copyable Pipeline examples and field-by-field guidance. Help is also available next to fields in Freestyle and the Pipeline Snippet Generator.
+The [walkthrough](docs/how-to.md) includes copyable Pipeline examples and field-by-field guidance. Help is also available next to fields in Freestyle and the Pipeline Snippet Generator. Pipeline is supported through Jenkins' SimpleBuildStep bridge; an active scan is nonresumable across a controller restart. See the walkthrough for restart recovery and the separate controller/agent network requirements.
 
 ## Build from source
 

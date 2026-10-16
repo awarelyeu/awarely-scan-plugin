@@ -36,8 +36,11 @@ final class UserErrors {
                     "Pinned scanner is absent. Ask an administrator to enable verified tool downloads or prepopulate the documented cache",
                     "Pinned scanner is absent. Ask an administrator to enable verified tool downloads or prepopulate the documented cache"),
             Map.entry(
-                    "Pinned release download failed; check agent HTTPS access",
-                    "Pinned release download failed; check agent HTTPS access to GitHub."),
+                    "Pinned release download failed; check controller HTTPS/proxy access",
+                    "Pinned release download failed; check the controller's HTTPS access and Jenkins proxy settings for GitHub."),
+            Map.entry(
+                    "Release download limit exceeded",
+                    "Pinned CLI download exceeded its deadline. Review the controller's HTTPS/proxy connectivity and retry."),
             Map.entry(
                     "Invalid check report",
                     "Monitor returned an invalid check report. No successful assessment is reported; retry later or contact support."),

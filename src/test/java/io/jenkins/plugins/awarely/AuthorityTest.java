@@ -25,6 +25,27 @@ import org.springframework.security.access.AccessDeniedException;
 @WithJenkins
 class AuthorityTest {
     @Test
+    void managePermissionCannotGrantMonitorOrAgentAuthority(JenkinsRule j) throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ, Jenkins.MANAGE)
+                .everywhere()
+                .to("manager"));
+        var config = AwarelyConfiguration.get();
+        assertEquals(Jenkins.ADMINISTER, config.getRequiredGlobalConfigPagePermission());
+        try (var ignored = ACL.as(User.getById("manager", true))) {
+            assertTrue(j.jenkins.hasPermission(Jenkins.MANAGE));
+            assertFalse(j.jenkins.hasPermission(config.getRequiredGlobalConfigPagePermission()));
+            assertThrows(
+                    AccessDeniedException.class,
+                    () -> config.configure(
+                            (org.kohsuke.stapler.StaplerRequest2) null,
+                            JSONObject.fromObject("{\"remoteJobs\":\"unapproved\"}")));
+            assertEquals("", config.getRemoteJobs());
+        }
+    }
+
+    @Test
     void credentialDropdownRequiresPostCrumbAndConfigurePermission(JenkinsRule j) throws Exception {
         var project = j.createFreeStyleProject("credential-form");
         var step = new AwarelyScanBuilder("npm");

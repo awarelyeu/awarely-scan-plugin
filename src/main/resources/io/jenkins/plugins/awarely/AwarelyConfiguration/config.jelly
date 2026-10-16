@@ -8,5 +8,6 @@
 <f:entry title="Trusted agents for remote actions and host scans (one exact node name per line)" field="trustedAgents"><f:textarea/></f:entry>
 <f:entry title="Allowed Monitor API origins (one exact HTTPS origin per line)" field="apiOrigins"><f:textarea/></f:entry>
 <p>Use dedicated agents for trusted jobs. External pull requests cannot use remote actions or host scans. Tool versions and hashes are fixed by the plugin release. Downloads never update tools to an unreviewed latest version.</p>
+<p>A missing CLI archive is downloaded by the controller using Jenkins proxy settings. Managed Syft downloads and Monitor requests run on the agent and require their own direct HTTPS access; they do not inherit the controller proxy.</p>
 </f:section>
 </j:jelly>
