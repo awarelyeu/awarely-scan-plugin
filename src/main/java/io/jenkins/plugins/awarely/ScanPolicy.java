@@ -1,19 +1,103 @@
 package io.jenkins.plugins.awarely;
 
-import java.util.Set;
+/** Validated job options. Legacy Pipeline/XML values remain stable. */
+public final class ScanPolicy {
+    public interface Option {
+        String getId();
 
-/** Validated job options. Values never become shell fragments. */
-final class ScanPolicy {
-    static final Set<String> COLLECTORS =
-            Set.of("linux", "npm", "npm-syft", "python", "python-syft", "java", "other", "import", "existing");
-    static final Set<String> MODES = Set.of("local", "check", "sync");
-    static final Set<String> GATES = Set.of("REPORT_ONLY", "CRITICAL", "HIGH", "MEDIUM", "LOW");
+        String getDescription();
+    }
+
+    public enum Collector implements Option {
+        NPM("npm", "npm lockfile"),
+        NPM_SYFT("npm-syft", "npm installed files (Syft)"),
+        PYTHON("python", "Python requirements.txt (partial)"),
+        PYTHON_SYFT("python-syft", "Python installed environment (Syft)"),
+        JAVA("java", "Java built artifacts (Syft)"),
+        OTHER("other", "NuGet / Go and other application ecosystems (Syft)"),
+        LINUX("linux", "Linux agent host"),
+        IMPORT("import", "Import external CycloneDX application SBOM"),
+        EXISTING("existing", "Existing Awarely SBOM");
+        private final String id, description;
+
+        Collector(String id, String description) {
+            this.id = id;
+            this.description = description;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    public enum Mode implements Option {
+        LOCAL("local", "Save local inventory only"),
+        CHECK("check", "Check CVEs"),
+        SYNC("sync", "Synchronize one source");
+        private final String id, description;
+
+        Mode(String id, String description) {
+            this.id = id;
+            this.description = description;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    public enum Threshold implements Option {
+        REPORT_ONLY("Report only"),
+        CRITICAL("Critical"),
+        HIGH("High"),
+        MEDIUM("Medium"),
+        LOW("Low");
+        private final String description;
+
+        Threshold(String description) {
+            this.description = description;
+        }
+
+        public String getId() {
+            return name();
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    public enum PolicyResult implements Option {
+        UNSTABLE("UNSTABLE — report and continue"),
+        FAILURE("FAILURE — stop this step");
+        private final String description;
+
+        PolicyResult(String description) {
+            this.description = description;
+        }
+
+        public String getId() {
+            return name();
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
 
     private ScanPolicy() {}
 
-    static String choice(String value, Set<String> values, String field) {
-        if (value == null || !values.contains(value)) throw new IllegalArgumentException("Unsupported " + field);
-        return value;
+    static <E extends Enum<E> & Option> E option(String value, Class<E> type, String field) {
+        for (E option : type.getEnumConstants()) if (option.getId().equals(value)) return option;
+        throw new IllegalArgumentException("Unsupported " + field);
     }
 
     static String relativePath(String input) {

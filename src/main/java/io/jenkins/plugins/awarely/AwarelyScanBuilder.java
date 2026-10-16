@@ -40,7 +40,8 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     @DataBoundConstructor
     public AwarelyScanBuilder(String collector) {
-        this.collector = ScanPolicy.choice(collector, ScanPolicy.COLLECTORS, "collector");
+        this.collector = ScanPolicy.option(collector, ScanPolicy.Collector.class, "collector")
+                .getId();
     }
 
     public String getCollector() {
@@ -49,6 +50,23 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     public String getMode() {
         return mode;
+    }
+
+    // Enum-backed form properties; existing Jenkinsfiles and saved job XML retain their original IDs.
+    public ScanPolicy.Collector getCollectorSelection() {
+        return ScanPolicy.option(collector, ScanPolicy.Collector.class, "collector");
+    }
+
+    public ScanPolicy.Mode getModeSelection() {
+        return ScanPolicy.option(mode, ScanPolicy.Mode.class, "action");
+    }
+
+    public ScanPolicy.Threshold getSeverityThresholdSelection() {
+        return ScanPolicy.option(severityThreshold, ScanPolicy.Threshold.class, "threshold");
+    }
+
+    public ScanPolicy.PolicyResult getPolicyResultSelection() {
+        return ScanPolicy.option(getPolicyResult(), ScanPolicy.PolicyResult.class, "policy result");
     }
 
     public String getPath() {
@@ -95,7 +113,8 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     @DataBoundSetter
     public void setPolicyResult(String v) {
-        policyResult = ScanPolicy.choice(v, Set.of("UNSTABLE", "FAILURE"), "policy result");
+        policyResult = ScanPolicy.option(v, ScanPolicy.PolicyResult.class, "policy result")
+                .getId();
     }
 
     @DataBoundSetter
@@ -105,7 +124,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     @DataBoundSetter
     public void setMode(String v) {
-        mode = ScanPolicy.choice(v, ScanPolicy.MODES, "action");
+        mode = ScanPolicy.option(v, ScanPolicy.Mode.class, "action").getId();
     }
 
     @DataBoundSetter
@@ -129,7 +148,8 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     @DataBoundSetter
     public void setSeverityThreshold(String v) {
-        severityThreshold = ScanPolicy.choice(v, ScanPolicy.GATES, "severity threshold");
+        severityThreshold = ScanPolicy.option(v, ScanPolicy.Threshold.class, "severity threshold")
+                .getId();
     }
 
     @DataBoundSetter
@@ -196,7 +216,7 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
                 .println("[Awarely] Input validation passed; results use a private directory outside the workspace.");
         if (detailedLogging)
             listener.getLogger().printf("[Awarely] Selected input: %s; label: %s%n", path, applicationLabel);
-        FilePath work = new FilePath(workspace.getChannel(), session.work);
+        FilePath work = new FilePath(workspace, session.work);
         String artifactPrefix = "awarely/" + UUID.randomUUID();
         try {
             if (preflightOnly) {
@@ -223,8 +243,8 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             listener.getLogger()
                     .println(
                             "[Awarely] Preparing the pinned CLI; cached and downloaded tools must pass digest verification.");
-            String binary = work.act(new PinnedTools.Prepare(
-                    pins, session.home, config.isAllowToolDownloads(), listener, detailedLogging));
+            String binary = PinnedTools.prepare(
+                    work, pins, session.home, config.isAllowToolDownloads(), listener, detailedLogging);
             FilePath inventory = work.child("inventory.cdx.json");
             int code;
             if (collector.equals("existing")) {
@@ -420,12 +440,12 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
 
     private void validate() throws AbortException {
         try {
-            ScanPolicy.choice(collector, ScanPolicy.COLLECTORS, "collector");
-            ScanPolicy.choice(mode, ScanPolicy.MODES, "action");
+            ScanPolicy.option(collector, ScanPolicy.Collector.class, "collector");
+            ScanPolicy.option(mode, ScanPolicy.Mode.class, "action");
             ScanPolicy.relativePath(path);
             ScanPolicy.label(applicationLabel);
-            ScanPolicy.choice(severityThreshold, ScanPolicy.GATES, "threshold");
-            ScanPolicy.choice(getPolicyResult(), Set.of("UNSTABLE", "FAILURE"), "policy result");
+            ScanPolicy.option(severityThreshold, ScanPolicy.Threshold.class, "threshold");
+            ScanPolicy.option(getPolicyResult(), ScanPolicy.PolicyResult.class, "policy result");
         } catch (IllegalArgumentException e) {
             throw new AbortException(e.getMessage());
         }
@@ -572,43 +592,27 @@ public final class AwarelyScanBuilder extends Builder implements SimpleBuildStep
             return "Awarely Scan: inventory, check or synchronize";
         }
 
-        public ListBoxModel doFillCollectorItems() {
-            ListBoxModel items = new ListBoxModel();
-            items.add("npm lockfile", "npm");
-            items.add("npm installed files (Syft)", "npm-syft");
-            items.add("Python requirements.txt (partial)", "python");
-            items.add("Python installed environment (Syft)", "python-syft");
-            items.add("Java built artifacts (Syft)", "java");
-            items.add("NuGet / Go and other application ecosystems (Syft)", "other");
-            items.add("Linux agent host", "linux");
-            items.add("Import external CycloneDX application SBOM", "import");
-            items.add("Existing Awarely SBOM", "existing");
-            return items;
+        @Override
+        public AwarelyScanBuilder newInstance(org.kohsuke.stapler.StaplerRequest2 req, net.sf.json.JSONObject form)
+                throws FormException {
+            // f:enum binds enum names; keep the original Pipeline and XML string contract unchanged.
+            bindSelection(form, "collector", ScanPolicy.Collector.class);
+            bindSelection(form, "mode", ScanPolicy.Mode.class);
+            bindSelection(form, "severityThreshold", ScanPolicy.Threshold.class);
+            bindSelection(form, "policyResult", ScanPolicy.PolicyResult.class);
+            return (AwarelyScanBuilder) super.newInstance(req, form);
         }
 
-        public ListBoxModel doFillModeItems() {
-            ListBoxModel items = new ListBoxModel();
-            items.add("Save local inventory only", "local");
-            items.add("Check CVEs", "check");
-            items.add("Synchronize one source", "sync");
-            return items;
-        }
-
-        public ListBoxModel doFillSeverityThresholdItems() {
-            ListBoxModel items = new ListBoxModel();
-            items.add("Report only", "REPORT_ONLY");
-            items.add("Critical", "CRITICAL");
-            items.add("High", "HIGH");
-            items.add("Medium", "MEDIUM");
-            items.add("Low", "LOW");
-            return items;
-        }
-
-        public ListBoxModel doFillPolicyResultItems() {
-            ListBoxModel items = new ListBoxModel();
-            items.add("UNSTABLE — report and continue", "UNSTABLE");
-            items.add("FAILURE — stop this step", "FAILURE");
-            return items;
+        private static <E extends Enum<E> & ScanPolicy.Option> void bindSelection(
+                net.sf.json.JSONObject form, String field, Class<E> type) throws FormException {
+            String selection = field + "Selection";
+            if (!form.containsKey(selection)) return;
+            try {
+                form.put(field, Enum.valueOf(type, form.getString(selection)).getId());
+                form.remove(selection);
+            } catch (IllegalArgumentException error) {
+                throw new FormException("Unsupported " + field, field);
+            }
         }
 
         @RequirePOST

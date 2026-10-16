@@ -25,8 +25,9 @@ class ScanPolicyTest {
     @Test
     void unknownPoliciesAreRejected() {
         assertThrows(
-                IllegalArgumentException.class, () -> ScanPolicy.choice("execute", ScanPolicy.COLLECTORS, "collector"));
-        assertThrows(IllegalArgumentException.class, () -> ScanPolicy.choice("UPLOAD", ScanPolicy.MODES, "mode"));
+                IllegalArgumentException.class,
+                () -> ScanPolicy.option("execute", ScanPolicy.Collector.class, "collector"));
+        assertThrows(IllegalArgumentException.class, () -> ScanPolicy.option("UPLOAD", ScanPolicy.Mode.class, "mode"));
         assertEquals(0, ScanPolicy.severity("UNKNOWN"));
     }
 }

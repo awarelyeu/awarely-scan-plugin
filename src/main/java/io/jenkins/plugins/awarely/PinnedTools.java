@@ -4,8 +4,6 @@ import hudson.remoting.VirtualChannel;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.Proxy;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -16,7 +14,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Properties;
-import java.util.Set;
 import jenkins.MasterToSlaveFileCallable;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -54,22 +51,75 @@ final class PinnedTools {
         }
     }
 
+    /** Network access stays on the controller so Jenkins proxy credentials never reach agents. */
+    static String prepare(
+            hudson.FilePath work,
+            Properties pins,
+            String home,
+            boolean download,
+            hudson.model.TaskListener listener,
+            boolean detailed)
+            throws IOException, InterruptedException {
+        String missingArch = work.act(new MissingArchive(pins, home));
+        byte[] archive = null;
+        if (missingArch != null) {
+            if (!java.util.List.of("amd64", "arm64").contains(missingArch))
+                throw new IOException("Unsupported agent architecture");
+            if (!download)
+                throw new IOException(
+                        "Pinned scanner is absent. Ask an administrator to enable verified tool downloads or prepopulate the documented cache");
+            listener.getLogger()
+                    .println("[Awarely] Downloading the pinned CLI through the controller's Jenkins proxy settings.");
+            String version = pins.getProperty("version");
+            String file = "awarely-scan_" + version + "_linux_" + missingArch + ".tar.gz";
+            archive = ReleaseDownload.fetch(URI.create(
+                    "https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/" + version + "/" + file));
+            if (!digest(archive).equals(pins.getProperty(missingArch + ".archive")))
+                throw new IOException("Pinned tool verification failed; nothing was executed");
+        }
+        return work.act(new Prepare(pins, home, archive, listener, detailed));
+    }
+
+    private static final class MissingArchive extends MasterToSlaveFileCallable<String> {
+        private static final long serialVersionUID = 1L;
+        private final Properties pins;
+        private final String home;
+
+        MissingArchive(Properties pins, String home) {
+            this.pins = pins;
+            this.home = home;
+        }
+
+        @Override
+        public String invoke(File directory, VirtualChannel channel) throws IOException {
+            AgentFiles.privateDirectory(directory.toPath());
+            AgentFiles.privateDirectory(Path.of(home));
+            String arch = architecture();
+            Path archive =
+                    Path.of(home).resolve("awarely-scan_" + pins.getProperty("version") + "_linux_" + arch + ".tar.gz");
+            if (!Files.exists(archive, LinkOption.NOFOLLOW_LINKS)) return arch;
+            verify(archive, pins.getProperty(arch + ".archive"), 40 * 1024 * 1024);
+            return null;
+        }
+    }
+
     static final class Prepare extends MasterToSlaveFileCallable<String> {
         private static final long serialVersionUID = 1L;
         private final Properties pins;
         private final String home;
-        private final boolean download;
+        private final byte[] downloadedArchive;
         private final hudson.model.TaskListener listener;
         private final boolean detailed;
 
-        Prepare(Properties pins, String home, boolean download) {
-            this(pins, home, download, hudson.model.TaskListener.NULL, false);
-        }
-
-        Prepare(Properties pins, String home, boolean download, hudson.model.TaskListener listener, boolean detailed) {
+        Prepare(
+                Properties pins,
+                String home,
+                byte[] downloadedArchive,
+                hudson.model.TaskListener listener,
+                boolean detailed) {
             this.pins = pins;
             this.home = home;
-            this.download = download;
+            this.downloadedArchive = downloadedArchive;
             this.listener = listener;
             this.detailed = detailed;
         }
@@ -86,20 +136,17 @@ final class PinnedTools {
             AgentFiles.privateDirectory(cache);
             Path archive = cache.resolve(file);
             if (!Files.exists(archive, LinkOption.NOFOLLOW_LINKS)) {
-                if (!download)
-                    throw new IOException(
-                            "Pinned scanner is absent. Ask an administrator to enable verified tool downloads or prepopulate the documented cache");
-                listener.getLogger().println("[Awarely] Downloading the approved pinned CLI release from GitHub.");
+                if (downloadedArchive == null || downloadedArchive.length > 40 * 1024 * 1024)
+                    throw new IOException("Verified CLI archive is unavailable; retry tool preparation");
+                if (!digest(downloadedArchive).equals(pins.getProperty(arch + ".archive")))
+                    throw new IOException("Pinned tool verification failed; nothing was executed");
                 Path temp = Files.createTempFile(
                         cache,
                         "download-",
                         ".tmp",
                         PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
                 try {
-                    download(
-                            URI.create("https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/" + version
-                                    + "/" + file),
-                            temp);
+                    Files.write(temp, downloadedArchive, java.nio.file.StandardOpenOption.WRITE);
                     verify(temp, pins.getProperty(arch + ".archive"), 40 * 1024 * 1024);
                     try {
                         Files.move(temp, archive, StandardCopyOption.ATOMIC_MOVE);
@@ -166,48 +213,5 @@ final class PinnedTools {
                 || !expected.matches("[0-9a-f]{64}")
                 || !digest(AgentFiles.read(file, limit)).equals(expected))
             throw new IOException("Pinned tool verification failed; nothing was executed");
-    }
-
-    private static void download(URI uri, Path destination) throws IOException, InterruptedException {
-        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(180);
-        for (int redirects = 0; redirects <= 5; redirects++) {
-            if (!"https".equals(uri.getScheme())
-                    || uri.getRawUserInfo() != null
-                    || (uri.getPort() != -1 && uri.getPort() != 443)
-                    || !Set.of("github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com")
-                            .contains(uri.getHost())) throw new IOException("Unapproved release redirect");
-            HttpURLConnection c = (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
-            c.setInstanceFollowRedirects(false);
-            c.setConnectTimeout(15000);
-            c.setReadTimeout(15000);
-            c.setRequestProperty("Accept", "application/octet-stream");
-            try {
-                int status = c.getResponseCode();
-                if (status >= 300 && status < 400) {
-                    String location = c.getHeaderField("Location");
-                    if (location == null) throw new IOException("Missing release redirect");
-                    uri = uri.resolve(location);
-                    continue;
-                }
-                if (status != 200) throw new IOException("Pinned release download failed; check agent HTTPS access");
-                if (c.getContentLengthLong() > 40L * 1024 * 1024) throw new IOException("Release archive is too large");
-                try (InputStream in = c.getInputStream();
-                        var out = Files.newOutputStream(destination)) {
-                    byte[] buf = new byte[32768];
-                    int n;
-                    long count = 0;
-                    while ((n = in.read(buf)) != -1) {
-                        if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                        if ((count += n) > 40L * 1024 * 1024 || System.nanoTime() > deadline)
-                            throw new IOException("Release download limit exceeded");
-                        out.write(buf, 0, n);
-                    }
-                }
-                return;
-            } finally {
-                c.disconnect();
-            }
-        }
-        throw new IOException("Too many release redirects");
     }
 }

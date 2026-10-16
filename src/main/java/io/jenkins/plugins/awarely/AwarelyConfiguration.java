@@ -84,6 +84,12 @@ public final class AwarelyConfiguration extends GlobalConfiguration {
     }
 
     @Override
+    public hudson.security.Permission getRequiredGlobalConfigPagePermission() {
+        // These settings grant credential use, remote writes and host inspection.
+        return Jenkins.ADMINISTER;
+    }
+
+    @Override
     public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         req.bindJSON(this, json);
