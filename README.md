@@ -1,3 +1,7 @@
+> **This repository is a historical archive.** Active development, issues, documentation and new releases have moved to [jenkinsci/awarely-scan-plugin](https://github.com/jenkinsci/awarely-scan-plugin).
+>
+> Existing releases, signed provenance bundles, download URLs and review history remain available here. The six historical releases are also mirrored byte-for-byte in the [canonical repository](https://github.com/jenkinsci/awarely-scan-plugin/releases). Their original build identity remains `awarelyeu/awarely-scan-plugin`; use the [historical verification instructions](https://github.com/jenkinsci/awarely-scan-plugin/blob/main/docs/releases.md).
+
 # Awarely Scan for Jenkins
 
 **Stable release: 0.2.0. Available as a verified HPI on GitHub.**
